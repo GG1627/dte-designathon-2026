@@ -27,8 +27,8 @@
           "minimum_deg": 13.191240496089863,
           "maximum_deg": 46.075483071546884,
           "rom_deg": 32.88424257545702,
-          "peak_abs_velocity_deg_s": 127.88618938608029,
-          "peak_abs_acceleration_deg_s2": 1622.7429895808766,
+          "peak_abs_velocity_deg_s": 128.0453614948893,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
           "quality": {
             "valid": true,
             "reasons": []
@@ -63,8 +63,8 @@
           "minimum_deg": 12.885107736636762,
           "maximum_deg": 44.069873032757926,
           "rom_deg": 31.184765296121164,
-          "peak_abs_velocity_deg_s": 130.53977981305914,
-          "peak_abs_acceleration_deg_s2": 1567.2858778791538,
+          "peak_abs_velocity_deg_s": 121.30613194252668,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439221,
           "quality": {
             "valid": true,
             "reasons": []
@@ -98,8 +98,8 @@
         "kinematics": {
           "rom_asymmetry_percent": 5.305146234642315,
           "peak_flexion_difference_deg": 2.0056100387889586,
-          "peak_angular_velocity_asymmetry_percent": 2.053656167143196,
-          "peak_angular_acceleration_asymmetry_percent": 3.4769034391766485
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405435,
+          "peak_angular_acceleration_asymmetry_percent": 5.4054054054054115
         },
         "loading": {
           "peak_force_asymmetry_percent": 0.0,
@@ -117,8 +117,8 @@
           "minimum_deg": 13.179906811623251,
           "maximum_deg": 46.06598143377581,
           "rom_deg": 32.88607462215256,
-          "peak_abs_velocity_deg_s": 132.79649224300297,
-          "peak_abs_acceleration_deg_s2": 1622.7740569794241,
+          "peak_abs_velocity_deg_s": 128.0453614948893,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
           "quality": {
             "valid": true,
             "reasons": []
@@ -153,8 +153,8 @@
           "minimum_deg": 12.848503596756025,
           "maximum_deg": 44.04020310634602,
           "rom_deg": 31.191699509589995,
-          "peak_abs_velocity_deg_s": 121.15518286200296,
-          "peak_abs_acceleration_deg_s2": 1567.3842726440278,
+          "peak_abs_velocity_deg_s": 121.30613194252668,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
           "quality": {
             "valid": true,
             "reasons": []
@@ -188,8 +188,8 @@
         "kinematics": {
           "rom_asymmetry_percent": 5.288495536936001,
           "peak_flexion_difference_deg": 2.0257783274297907,
-          "peak_angular_velocity_asymmetry_percent": 9.168129626383818,
-          "peak_angular_acceleration_asymmetry_percent": 3.4725413984035245
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405435,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
         },
         "loading": {
           "peak_force_asymmetry_percent": 0.0,
@@ -207,8 +207,8 @@
           "minimum_deg": 13.169306029166373,
           "maximum_deg": 46.05723692169872,
           "rom_deg": 32.887930892532346,
-          "peak_abs_velocity_deg_s": 138.01047208942168,
-          "peak_abs_acceleration_deg_s2": 1622.8026489230808,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
           "quality": {
             "valid": true,
             "reasons": []
@@ -243,8 +243,8 @@
           "minimum_deg": 12.81482696886599,
           "maximum_deg": 44.01166946133287,
           "rom_deg": 31.19684249246688,
-          "peak_abs_velocity_deg_s": 129.3964825576949,
-          "peak_abs_acceleration_deg_s2": 1568.9217376388506,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
           "quality": {
             "valid": true,
             "reasons": []
@@ -278,8 +278,8 @@
         "kinematics": {
           "rom_asymmetry_percent": 5.277660544747464,
           "peak_flexion_difference_deg": 2.045567460365845,
-          "peak_angular_velocity_asymmetry_percent": 6.442606956946377,
-          "peak_angular_acceleration_asymmetry_percent": 3.3762884734712206
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
         },
         "loading": {
           "peak_force_asymmetry_percent": 0.0,

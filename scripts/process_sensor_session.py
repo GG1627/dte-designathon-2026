@@ -3,6 +3,9 @@
 No ground truth participates in processing. Initialization assumes the first
 sample is stationary and both sensor yaw references are zero. This is suitable
 for the sagittal fixture, not an arbitrary 3-D anatomical angle calibration.
+Velocity uses calibrated shank gyro Y minus thigh gyro Y only for this ideal
+aligned sagittal model. Real 3-D hardware requires transforming both segment
+angular velocities into a common/anatomical frame before taking the component.
 """
 import argparse
 import copy
@@ -62,7 +65,7 @@ def check_quaternion(q):
 def finite_difference(values, times):
     """Secant central differences inside; first-order one-sided at boundaries.
 
-    Interior: (v[i+1]-v[i-1])/(t[i+1]-t[i-1]). Apply twice for acceleration.
+    Interior: (v[i+1]-v[i-1])/(t[i+1]-t[i-1]). Applied once to gyro velocity.
     No smoothing or interpolation; derivative noise is not suppressed here.
     """
     return [
@@ -81,14 +84,20 @@ def process_session(raw):
         "schema_version", "session_id", "activity", "synthetic", "participant",
         "sampling", "sources", "insole_geometry", "annotations",
     )}
+    for key in ("scenario", "phases"):
+        if key in raw:
+            processed[key] = copy.deepcopy(raw[key])
     processed["processing"] = {
         "stage": "post_sensor_processing", "orientation_filter": "Madgwick 6-DOF",
         "sensor_to_segment_calibration": "synthetic ideal alignment",
         "calibration_transform_wxyz": [1.0, 0.0, 0.0, 0.0],
         "hardware_calibration_requirement": "real hardware requires sensor-to-segment calibration",
-        "knee_angle_source": "relative thigh/shank orientation; signed Y pitch",
+        "knee_angle_source": "relative thigh/shank Madgwick orientation; signed Y pitch",
+        "knee_angular_velocity_source": "relative thigh/shank gyroscope Y-axis; ideal aligned sagittal model",
+        "knee_angular_acceleration_source": "finite difference of gyro-derived knee angular velocity",
+        "velocity_frame_requirement": "real 3D hardware requires calibrated common/anatomical frame transformation",
         "relative_orientation": "conjugate(thigh sensor-to-world) * shank sensor-to-world",
-        "knee_derivatives": "finite differences; central interiors, one-sided boundaries; applied twice",
+        "knee_derivatives": "velocity from calibrated gyro Y difference; acceleration from central interiors, one-sided boundaries",
         "derivative_filter": "none",
         "timestamp_processing": "strict monotonic timestamps/sequences; interval tolerance 1%; no interpolation",
         "filter_beta": BETA,
@@ -115,8 +124,10 @@ def process_session(raw):
         dt = row["timestamp_s"] - raw["samples"][i - 1]["timestamp_s"] if i else None
         for side in ("left", "right"):
             orientations = {}
+            calibrated_gyros = {}
             for segment in ("thigh", "shank"):
                 gyro, accel = calibrate_imu(row[side]["imu"][segment])
+                calibrated_gyros[segment] = gyro
                 orientation = filters[side, segment]
                 if i:
                     orientation.update(*gyro, *accel, dt)
@@ -130,17 +141,20 @@ def process_session(raw):
             orientations["relative_wxyz"] = relative
             sample[side] = {
                 "orientation": orientations,
-                "knee": {"flexion_rad": angle, "quality": {"valid": True, "reasons": []}},
+                "knee": {
+                    "flexion_rad": angle,
+                    "angular_velocity_rad_s": calibrated_gyros["shank"][1] - calibrated_gyros["thigh"][1],
+                    "quality": {"valid": True, "reasons": []},
+                },
                 "insole": copy.deepcopy(row[side]["insole"]),
             }
         samples.append(sample)
     times = [row["timestamp_s"] for row in samples]
     for side in ("left", "right"):
-        angles = [row[side]["knee"]["flexion_rad"] for row in samples]
-        velocity = finite_difference(angles, times)
+        velocity = [row[side]["knee"]["angular_velocity_rad_s"] for row in samples]
         acceleration = finite_difference(velocity, times)
-        for row, speed, change in zip(samples, velocity, acceleration):
-            row[side]["knee"].update(angular_velocity_rad_s=speed, angular_acceleration_rad_s2=change)
+        for row, change in zip(samples, acceleration):
+            row[side]["knee"]["angular_acceleration_rad_s2"] = change
     processed["samples"] = samples
     return processed
 
@@ -149,12 +163,18 @@ def validate_processed(raw, processed):
     """Validation-only ground-truth comparison after reconstruction is complete."""
     assert len(processed["samples"]) == len(raw["samples"])
     if raw["processing"]["stage"] == "raw_sensor_fixture":
-        assert len(processed["samples"]) == 600
+        assert len(processed["samples"]) == round(raw["sampling"]["rate_hz"] * raw["sampling"]["duration_s"])
     print("Synthetic ideal fixture — not hardware validation.")
-    print("\nKintra raw sensor pipeline validation")
-    print("-------------------------------------")
+    print("\nKintra kinematic reconstruction validation")
+    print("-------------------------------------------")
     print(f"Samples: {len(processed['samples'])}")
     print(f"Sampling rate: {processed['sampling']['rate_hz']} Hz")
+    signals = (
+        ("flexion_rad", "Flexion", "deg", False, 1.0),
+        ("angular_velocity_rad_s", "Angular velocity", "deg/s", True, 1e-9),
+        ("angular_acceleration_rad_s2", "Angular acceleration", "deg/s^2", True, 5.0),
+    )
+    has_truth = all("ground_truth" in row for row in raw["samples"])
     for side in ("left", "right"):
         for row in processed["samples"]:
             assert all(math.isfinite(value) for key, value in row[side]["knee"].items() if key != "quality")
@@ -162,17 +182,58 @@ def validate_processed(raw, processed):
                 assert all(math.isfinite(value) for value in q)
                 assert math.isclose(math.hypot(*q), 1.0, abs_tol=1e-10)
         assert all(a[side]["insole"] == b[side]["insole"] for a, b in zip(raw["samples"], processed["samples"]))
-        if all("ground_truth" in row for row in raw["samples"]):
-            truth = [math.degrees(row["ground_truth"][f"{side}_knee_flexion_rad"]) for row in raw["samples"]]
-            reconstructed = [math.degrees(row[side]["knee"]["flexion_rad"]) for row in processed["samples"]]
-            errors = [estimate - true for estimate, true in zip(reconstructed, truth)]
-            rmse = math.sqrt(sum(error**2 for error in errors) / len(errors))
-            assert rmse < 1.0, f"{side} ideal-test RMSE too large: {rmse}"
-            print(f"\n{side.capitalize()} knee:")
-            print(f"  True peak flexion: {max(truth):.2f} deg")
-            print(f"  Reconstructed peak flexion: {max(reconstructed):.2f} deg")
-            print(f"  RMSE: {rmse:.3f} deg")
-            print(f"  Maximum absolute error: {max(abs(error) for error in errors):.3f} deg")
+        if has_truth:
+            print(f"\n{side.upper()} KNEE")
+            for key, label, units, absolute_peak, rmse_limit in signals:
+                truth = [math.degrees(row["ground_truth"][f"{side}_knee_{key}"]) for row in raw["samples"]]
+                estimates = [math.degrees(row[side]["knee"][key]) for row in processed["samples"]]
+                errors = [estimate - true for estimate, true in zip(estimates, truth)]
+                rmse = math.sqrt(sum(error**2 for error in errors) / len(errors))
+                assert rmse < rmse_limit, f"{side} {label} ideal-test RMSE too large: {rmse}"
+                true_peak = max(abs(value) for value in truth) if absolute_peak else max(truth)
+                peak = max(abs(value) for value in estimates) if absolute_peak else max(estimates)
+                peak_label = "peak absolute" if absolute_peak else "peak"
+                print(f"\n{label}:")
+                print(f"  RMSE: {rmse:.6f} {units}")
+                print(f"  Max absolute error: {max(abs(error) for error in errors):.6f} {units}")
+                print(f"  True {peak_label}: {true_peak:.6f} {units}")
+                print(f"  Reconstructed {peak_label}: {peak:.6f} {units}")
+
+    repeated = {side: [] for side in ("left", "right")}
+    print("\nPer-landing kinematic comparison")
+    for annotation in raw["annotations"]:
+        if annotation["type"] != "synthetic_landing_window":
+            continue
+        indices = [i for i, row in enumerate(processed["samples"])
+                   if annotation["start_s"] <= row["timestamp_s"] <= annotation["end_s"]]
+        if not indices:
+            continue
+        print(f"\n{annotation['event_id']}")
+        for side in ("left", "right"):
+            metrics = {}
+            print(f"  {side.capitalize()}:")
+            for key, label, units, absolute_peak, _ in signals:
+                values = [math.degrees(processed["samples"][i][side]["knee"][key]) for i in indices]
+                peak = max(abs(value) for value in values) if absolute_peak else max(values)
+                metrics[label] = peak
+                if key == "flexion_rad":
+                    metrics["ROM"] = max(values) - min(values)
+                if has_truth:
+                    truth = [math.degrees(raw["samples"][i]["ground_truth"][f"{side}_knee_{key}"]) for i in indices]
+                    true_peak = max(abs(value) for value in truth) if absolute_peak else max(truth)
+                    print(f"    {label} peak: true={true_peak:.6f}, estimated={peak:.6f} {units}")
+                else:
+                    print(f"    {label} peak: estimated={peak:.6f} {units}")
+            repeated[side].append(metrics)
+    print("\nAnnotated landing metric ranges")
+    print("Ranges describe all annotated events; programmed changes are not reconstruction errors.")
+    for side, events in repeated.items():
+        print(f"\n{side.capitalize()}:")
+        for label, units in (("Flexion", "deg"), ("ROM", "deg"),
+                             ("Angular velocity", "deg/s"), ("Angular acceleration", "deg/s^2")):
+            if events:
+                values = [event[label] for event in events]
+                print(f"  {label} range: {max(values) - min(values):.12g} {units}")
     print("\nTimestamp validation: PASS")
     print("Quaternion validation: PASS")
     print("Processed schema: PASS")
