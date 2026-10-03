@@ -1,6 +1,6 @@
 # Welcome to your Expo app 👋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+This is Kintra's Expo mobile prototype. **Read [HANDOFF.md](HANDOFF.md) for current screens, approved design decisions, setup, limitations, and notes for resuming work.** The remaining sections below are the original Expo starter instructions.
 
 ## Get started
 

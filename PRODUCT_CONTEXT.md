@@ -4,9 +4,9 @@
 
 **Working shorthand:** “WHOOP for joints.”
 
-**Product name:** Undecided. Do not assume that any working label is the final brand.
+**Product name:** Kintra. The wearable platform and companion app share this name.
 
-**Current stage:** Product concept and design exploration.
+**Current stage:** Designathon concept with a working mobile UI prototype using synthetic data. Hardware and sensing algorithms are not implemented or validated. See [the app handoff](rn-app/HANDOFF.md) for implementation and design decisions.
 
 ## 1. The idea in two sentences
 
