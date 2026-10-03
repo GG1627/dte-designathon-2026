@@ -43,7 +43,13 @@ Optional demo controls:
 python3 -B scripts/run_baseline_demo.py --seed 20261003 --min-valid-events 3 --min-reference-sessions 5
 ```
 
-These minimum counts are software demonstration choices, not validated clinical requirements. Raising the reference minimum above five intentionally produces insufficient-history results. Changing a seed explicitly replaces the generated history and its baseline.
+These minimum counts are software demonstration choices, not validated clinical requirements.
+Computed `ready` distributions carry `reference_status="provisional_reference"`; unavailable
+ones carry `insufficient_reference`. Synthetic multi-day histories do not establish a
+validated longitudinal reference. Reliability fields (typical error, CV, SEM, MDC)
+remain null and fitted references stay fixed. See the
+[controlled-reference and reliability rules](pipeline-integration.md#controlled-reference-and-measurement-reliability)
+for the separate five-trial within-session experiment and published sources. Raising the reference minimum above five intentionally produces insufficient-history results. Changing a seed explicitly replaces the generated history and its baseline.
 
 ## Schema extension and compatibility
 

@@ -445259,7 +445259,7 @@
   ],
   "phases": [
     {
-      "name": "baseline",
+      "name": "controlled_reference",
       "landings": [
         1,
         2,
@@ -445303,7 +445303,7 @@
     "events": [
       {
         "event_id": "landing_1",
-        "phase": "baseline",
+        "phase": "controlled_reference",
         "start_s": 1.0,
         "end_s": 1.6,
         "programmed": {
@@ -445321,7 +445321,7 @@
       },
       {
         "event_id": "landing_2",
-        "phase": "baseline",
+        "phase": "controlled_reference",
         "start_s": 3.0,
         "end_s": 3.6,
         "programmed": {
@@ -445339,7 +445339,7 @@
       },
       {
         "event_id": "landing_3",
-        "phase": "baseline",
+        "phase": "controlled_reference",
         "start_s": 5.0,
         "end_s": 5.6,
         "programmed": {
@@ -445357,7 +445357,7 @@
       },
       {
         "event_id": "landing_4",
-        "phase": "baseline",
+        "phase": "controlled_reference",
         "start_s": 7.0,
         "end_s": 7.6,
         "programmed": {
@@ -445375,7 +445375,7 @@
       },
       {
         "event_id": "landing_5",
-        "phase": "baseline",
+        "phase": "controlled_reference",
         "start_s": 9.0,
         "end_s": 9.6,
         "programmed": {

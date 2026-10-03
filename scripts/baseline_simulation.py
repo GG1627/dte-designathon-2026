@@ -133,6 +133,8 @@ def context(data, rules):
                      "clock": data["sampling"]["clock"],
                      "processing": processing, "sources": data["sources"],
                      "insole_geometry": data["insole_geometry"]}
+    if "acquisition_context" in metadata:
+        configuration["acquisition_context"] = metadata["acquisition_context"]
     return {"participant_id": data["participant"]["id"], "joint": metadata["joint"],
             "activity": data["activity"], "configuration_id": metadata["configuration_id"],
             "configuration_signature": digest(configuration),
@@ -314,6 +316,8 @@ def fit_baseline(reference_sessions, rules=Rules()):
         fitted.append({"context": first_session["context"], "side": first_metric["side"],
                        "metric": first_metric["metric"], "unit": first_metric["unit"],
                        "status": "ready" if ready else "insufficient_reference_history",
+                       "reference_status": "provisional_reference" if ready else "insufficient_reference",
+                       "scope": "multi_session_reference",
                        "median": center, "mad": dispersion,
                        "eligible_session_count": len(eligible), "total_session_count": len(entries),
                        "contributing_event_count": sum(m["valid_event_count"] for _, m in eligible),
@@ -327,7 +331,8 @@ def fit_baseline(reference_sessions, rules=Rules()):
     return {"schema_version": "baseline-results/1.0.0", "synthetic": True,
             "version": BASELINE_VERSION, "aggregation": "median_of_reference_session_medians",
             "dispersion": "median_absolute_deviation_of_session_medians", "rules": asdict(rules),
-            "reference_session_ids": [s["session_id"] for s in reference_sessions], "metrics": fitted}
+            "reference_session_ids": [s["session_id"] for s in reference_sessions], "metrics": fitted,
+            "measurement_error": measurement_error_metadata(), "updating": "fixed"}
 
 
 def compare_evaluations(baseline, evaluation_sessions):
@@ -349,31 +354,102 @@ def compare_evaluations(baseline, evaluation_sessions):
                 reasons.add("incompatible_context" if baseline["metrics"] else "baseline_unavailable")
             elif ref["status"] != "ready":
                 reasons.add("insufficient_reference_history")
-            difference = percent = standardized = None
-            percent_reasons, standardized_reasons = [], []
-            if not reasons:
-                difference = metric["median"] - ref["median"]
-                if ref["median"] == 0:
-                    percent_reasons = ["zero_reference"]
-                else:
-                    percent = 100 * difference / ref["median"]
-                if ref["mad"] <= max(rules.mad_abs_tol, rules.mad_rel_tol * abs(ref["median"])):
-                    standardized_reasons = ["zero_or_degenerate_mad"]
-                else:
-                    standardized = 0.67448975 * difference / ref["mad"]
-            else:
-                percent_reasons = standardized_reasons = sorted(reasons)
             comparisons.append({"side": metric["side"], "metric": metric["metric"], "unit": metric["unit"],
                                 "evaluation_median": metric["median"],
                                 "valid_event_count": metric["valid_event_count"],
                                 "reference_median": ref["median"] if ref else None,
                                 "reference_mad": ref["mad"] if ref else None,
-                                "signed_difference": difference, "percent_difference": percent,
-                                "robust_standardized_difference": standardized,
-                                "status": "unavailable" if reasons else (
-                                    "partial" if percent_reasons or standardized_reasons else "compared"),
-                                "reasons": sorted(reasons),
-                                "percent_difference_reasons": percent_reasons,
-                                "standardized_difference_reasons": standardized_reasons})
+                                **comparison_values(metric["median"], ref, reasons, rules)})
         evaluations.append({**session, "baseline_version": baseline["version"], "comparisons": comparisons})
     return evaluations
+
+
+def measurement_error_metadata():
+    """Reserved reliability fields; no Kintra reliability study has established them."""
+    return {"status": "not_empirically_established", "typical_error": None,
+            "cv_percent": None, "sem": None, "mdc": None, "source": None,
+            "clinical_meaning_established": False}
+
+
+def comparison_values(value, ref, reasons, rules):
+    """Shared signed deviations; degeneracy does not fabricate variability."""
+    difference = percent = standardized = None
+    percent_reasons, standardized_reasons = [], []
+    if not reasons:
+        difference = value - ref["median"]
+        if ref["median"] == 0:
+            percent_reasons = ["zero_reference"]
+        else:
+            percent = 100 * difference / ref["median"]
+        if ref["mad"] <= max(rules.mad_abs_tol, rules.mad_rel_tol * abs(ref["median"])):
+            standardized_reasons = ["zero_or_degenerate_mad"]
+        else:
+            standardized = 0.67448975 * difference / ref["mad"]
+    else:
+        percent_reasons = standardized_reasons = sorted(reasons)
+    return {"signed_difference": difference, "percent_difference": percent,
+            "robust_standardized_difference": standardized,
+            "status": "unavailable" if reasons else (
+                "partial" if percent_reasons or standardized_reasons else "compared"),
+            "reasons": sorted(reasons), "percent_difference_reasons": percent_reasons,
+            "standardized_difference_reasons": standardized_reasons}
+
+
+def fit_controlled_reference(extracted, reference_event_ids, rules=Rules()):
+    """Freeze selected trials from ONE synthetic session; never a personal baseline.
+
+    Median/MAD describe these trials only. Existing minimum valid-event rules
+    determine computational availability, not scientific reference sufficiency.
+    """
+    ids = list(reference_event_ids)
+    available = {e["event_id"] for e in extracted["event_metrics"]}
+    if not ids or len(ids) != len(set(ids)) or not set(ids) <= available:
+        raise ValueError("Reference IDs must be unique existing events")
+    if extracted["synthetic"] is not True:
+        raise ValueError("Controlled test reference requires a synthetic session")
+    if extracted["processing"]["rules"] != asdict(rules):
+        raise ValueError("Reference rules must match extracted metrics")
+    metrics = []
+    for side in SIDES:
+        for name, unit in METRICS.items():
+            selected = [e for e in extracted["event_metrics"]
+                        if e["event_id"] in ids and e["side"] == side and e["metric"] == name]
+            valid = [e for e in selected if e["status"] == "accepted"]
+            ready = len(valid) >= rules.min_valid_events
+            center = median(e["value"] for e in valid) if ready else None
+            metrics.append({"context": copy.deepcopy(extracted["context"]),
+                            "side": side, "metric": name, "unit": unit,
+                            "status": "ready" if ready else "insufficient_reference",
+                            "median": center,
+                            "mad": median(abs(e["value"] - center) for e in valid) if ready else None,
+                            "valid_event_ids": [e["event_id"] for e in valid],
+                            "valid_event_count": len(valid),
+                            "rejected_events": [copy.deepcopy(e) for e in selected if e["status"] != "accepted"]})
+    return {"schema_version": "controlled-reference/1.0.0",
+            "reference_status": "controlled_test_reference", "synthetic": True,
+            "label": "controlled within-session reference", "session_id": extracted["session_id"],
+            "session_count": 1, "reference_event_ids": ids, "rules": asdict(rules),
+            "aggregation": "median_of_reference_events", "dispersion": "within_session_event_mad",
+            "updating": "fixed", "measurement_error": measurement_error_metadata(), "metrics": metrics}
+
+
+def compare_controlled_observations(reference, extracted):
+    """Compare held-out trials using the shared deviations, without updating reference."""
+    rules = Rules(**reference["rules"])
+    lookup = {group_key(m["context"], m["side"], m["metric"]): m for m in reference["metrics"]}
+    comparisons = []
+    for event in extracted["event_metrics"]:
+        if (extracted["session_id"] == reference["session_id"]
+                and event["event_id"] in reference["reference_event_ids"]):
+            continue
+        ref = lookup.get(group_key(extracted["context"], event["side"], event["metric"]))
+        reasons = set(event["reasons"])
+        if ref is None:
+            reasons.add("incompatible_context")
+        elif ref["status"] != "ready":
+            reasons.add("insufficient_reference")
+        comparisons.append({**event, "session_id": extracted["session_id"],
+                            "reference_median": ref["median"] if ref else None,
+                            "reference_mad": ref["mad"] if ref else None,
+                            **comparison_values(event["value"], ref, reasons, rules)})
+    return comparisons

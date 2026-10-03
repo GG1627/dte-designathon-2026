@@ -75,7 +75,7 @@ def training_events():
     for number in range(1, 21):
         flexion_scale = left_force_scale = right_force_scale = 1.0
         if number <= 5:
-            phase = "baseline"
+            phase = "controlled_reference"
         elif number <= 10:
             phase = "higher_loading"
             left_force_scale = right_force_scale = 1.0 + 0.02 * (number - 5)
@@ -118,7 +118,7 @@ def generate_training_fixture():
     data["sampling"].update(rate_hz=rate, duration_s=duration)
     data["phases"] = [
         {"name": name, "landings": list(range(first, first + 5))}
-        for name, first in (("baseline", 1), ("higher_loading", 6),
+        for name, first in (("controlled_reference", 1), ("higher_loading", 6),
                             ("reduced_flexion", 11), ("right_load_bias", 16))
     ]
     data["annotations"] = [
@@ -164,6 +164,8 @@ def generate_training_fixture():
 def validate_training_output(processed_path):
     """Scenario assertions belong to the test generator, not production processing."""
     from analyze_session import analyze_session
+    from baseline_simulation import (evaluation_fixture, extract_session, fit_controlled_reference,
+                                     compare_controlled_observations)
     from process_sensor_session import process_session
 
     raw = json.loads(OUTPUT.read_text())
@@ -224,6 +226,25 @@ def validate_training_output(processed_path):
               f"{event['left']['loading']['peak_force_bw']:7.3f} | "
               f"{event['right']['loading']['peak_force_bw']:8.3f} | "
               f"{event['bilateral']['loading']['peak_force_asymmetry_percent']:12.6f}")
+    extracted = extract_session(evaluation_fixture(processed, 1))
+    reference = fit_controlled_reference(extracted, [event["event_id"] for event in events[:5]])
+    comparisons = compare_controlled_observations(reference, extracted)
+    output = OUTPUT.parents[1] / "baseline_demo" / "controlled_reference" / "comparison.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps({"reference": reference, "observations": comparisons},
+                                 indent=2, allow_nan=False) + "\n")
+    print("\nControlled within-session reference: landings 1–5 (controlled_test_reference).")
+    print("Fixed reference; landings 6–20 compared. Engineering validation only.")
+    print("Measurement-error thresholds are not empirically established; no clinical inference.")
+    print("landing    | left force vs reference % | right force vs reference %")
+    for event in events[5:]:
+        force = [next(c for c in comparisons if c["event_id"] == event["event_id"]
+                      and c["side"] == side and c["metric"] == "peak_plantar_normal_force_bw")
+                 for side in ("left", "right")]
+        values_text = ["unavailable" if c["percent_difference"] is None
+                       else f"{c['percent_difference']:+.2f}" for c in force]
+        print(f"{event['event_id']:10} | {values_text[0]:>25} | {values_text[1]:>26}")
+    print(f"Saved {output}")
     print("\nPASS: all phase trends, finite signals, normalized quaternions, and ground-truth independence.")
 
 
