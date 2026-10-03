@@ -89,7 +89,12 @@ export default function TrendsScreen() {
           </Text>
           <Badge muted>{`Past ${days} days`}</Badge>
         </Row>
-        <RangeChart joint={joint} activity={activity} records={records} />
+        <RangeChart
+          key={`${jointId}-${activity}-${days}`}
+          joint={joint}
+          activity={activity}
+          records={records}
+        />
       </Panel>
       {records.length ? (
         <>

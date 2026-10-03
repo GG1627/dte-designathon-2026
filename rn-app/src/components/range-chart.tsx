@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { View } from 'react-native';
+import { createElement, useState } from 'react';
+import { Platform, View } from 'react-native';
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated';
 import { Action, Badge, Row, Sheet } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
@@ -39,15 +40,26 @@ export function RangeChart({
         </Text>
       </View>
     );
-  return (
-    <View style={{ gap: s.three }}>
+  const chart = (
+    <Animated.View
+      entering={
+        Platform.OS === 'web'
+          ? undefined
+          : FadeInDown.duration(140)
+              .withInitialValues({ opacity: 0, transform: [{ translateY: 4 }] })
+              .reduceMotion(ReduceMotion.System)
+      }
+      style={{ gap: s.three }}>
       <Row>
         <View style={{ gap: s.one }}>
           <Text type="small" themeColor="textSecondary">
             Average movement range
           </Text>
           <Text type="metric" style={{ color: c.accent }}>
-            {Math.round(mean)}°
+            {Math.round(mean)}
+            <Text type="subtitle" themeColor="textSecondary">
+              °
+            </Text>
           </Text>
         </View>
         <Action onPress={() => setOpen(true)}>View data</Action>
@@ -94,10 +106,10 @@ export function RangeChart({
                 width: '100%',
                 bottom: `${(baseline.low / max) * 100}%`,
                 height: ((baseline.high - baseline.low) / max) * height,
-                backgroundColor: c.accentMuted,
+                backgroundColor: c.comparisonMuted,
                 borderTopWidth: 1,
                 borderBottomWidth: 1,
-                borderColor: c.accent,
+                borderColor: c.comparison,
               }}
             />
           ) : null}
@@ -138,7 +150,8 @@ export function RangeChart({
           {records.length} comparable {activity.toLowerCase()} recordings
         </Text>
         {joint.baselineReady ? (
-          <Badge>{`Reference ${baseline.low}–${baseline.high}°`}</Badge>
+          <Badge
+            comparison>{`Reference ${baseline.low}–${baseline.high}°`}</Badge>
         ) : (
           <Badge muted>Baseline developing</Badge>
         )}
@@ -162,6 +175,9 @@ export function RangeChart({
           </Row>
         ))}
       </Sheet>
-    </View>
+    </Animated.View>
   );
+  return Platform.OS === 'web'
+    ? createElement('div', { className: 'kintra-chart-transition' }, chart)
+    : chart;
 }

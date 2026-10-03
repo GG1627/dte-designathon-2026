@@ -23,7 +23,9 @@ export const Colors = {
     textSecondary: '#A6ADB5',
     accent: '#FF5A36',
     accentMuted: '#452921',
-    border: '#343334',
+    border: '#2B2E32',
+    comparison: '#8CBFD9',
+    comparisonMuted: '#233640',
     warning: '#E3C892',
   },
 } as const;

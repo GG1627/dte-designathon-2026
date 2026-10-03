@@ -4,6 +4,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState, type ReactNode } from 'react';
 import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText as Text } from '@/components/themed-text';
 import { useDemo } from '@/components/demo-provider';
@@ -42,7 +43,6 @@ export function Screen({ children }: { children: ReactNode }) {
       style={{ flex: 1, backgroundColor: c.background }}
       contentContainerStyle={{
         alignItems: 'center',
-        paddingTop: insets.top,
         paddingBottom:
           Platform.OS === 'web' ? 112 : Math.max(insets.bottom, s.four),
       }}>
@@ -51,6 +51,7 @@ export function Screen({ children }: { children: ReactNode }) {
           width: '100%',
           maxWidth: MaxContentWidth,
           padding: s.four,
+          paddingTop: s.three,
           gap: s.five,
         }}>
         {children}
@@ -106,19 +107,29 @@ export function Panel({
 export function Badge({
   children,
   muted = false,
+  comparison = false,
 }: {
   children: string;
   muted?: boolean;
+  comparison?: boolean;
 }) {
   return (
     <View
       style={{
         paddingHorizontal: s.two,
         paddingVertical: s.one,
-        backgroundColor: muted ? c.backgroundSelected : c.accentMuted,
+        backgroundColor: comparison
+          ? c.comparisonMuted
+          : muted
+            ? c.backgroundSelected
+            : c.accentMuted,
         borderRadius: Radius.small,
       }}>
-      <Text type="small" style={{ color: muted ? c.textSecondary : c.accent }}>
+      <Text
+        type="small"
+        style={{
+          color: comparison ? c.comparison : muted ? c.textSecondary : c.accent,
+        }}>
         {children}
       </Text>
     </View>
@@ -258,13 +269,32 @@ export function PageIntro({
         <View
           style={{ flexDirection: 'row', alignItems: 'center', gap: s.two }}>
           <View
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: 3,
-              backgroundColor: c.accent,
-            }}
-          />
+            aria-hidden
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants">
+            <Svg width={22} height={24} viewBox="0 0 22 24">
+              <Path
+                d="M5 3V21M6 12L18 3"
+                stroke={c.text}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              />
+              <Path
+                d="M6 12L18 21"
+                stroke={c.accent}
+                strokeWidth={2.4}
+                strokeLinecap="round"
+              />
+              <Circle
+                cx={6}
+                cy={12}
+                r={3.8}
+                fill={c.background}
+                stroke={c.accent}
+                strokeWidth={1.5}
+              />
+            </Svg>
+          </View>
           <Text type="label" style={{ color: c.accent }}>
             Kintra
           </Text>

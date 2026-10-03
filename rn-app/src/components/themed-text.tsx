@@ -73,6 +73,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 30,
     fontWeight: 600,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -0.4,
   },
   link: {
     lineHeight: 30,
@@ -91,7 +93,8 @@ const styles = StyleSheet.create({
   metric: {
     fontSize: 56,
     lineHeight: 68,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: -1.5,
     fontVariant: ['tabular-nums'],
   },
   label: {

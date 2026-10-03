@@ -3,6 +3,11 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { isOnline, useDemo } from '@/components/demo-provider';
 import {
+  ActivityBar,
+  CoverageRing,
+  JointRangeScale,
+} from '@/components/home-visuals';
+import {
   Action,
   Badge,
   PageIntro,
@@ -18,7 +23,14 @@ import {
 } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
-import { demoDate, formatDate, joints, rom, sessions } from '@/data/demo';
+import {
+  demoDate,
+  formatDate,
+  joints,
+  reference,
+  rom,
+  sessions,
+} from '@/data/demo';
 
 export default function HomeScreen() {
   const [devicesOpen, setDevicesOpen] = useState(false);
@@ -64,20 +76,36 @@ export default function HomeScreen() {
               About
             </Action>
           </Row>
-          <Text type="metric" style={{ color: c.accent }}>
-            {minutes}
-            <Text type="subtitle" themeColor="textSecondary">
-              {' '}
-              min
-            </Text>
-          </Text>
-          <Text themeColor="textSecondary">
-            of activity across {today.length} recordings
-          </Text>
+          <Row wrap>
+            <View style={{ flexGrow: 1, flexBasis: 110, gap: s.one }}>
+              <Text type="metric" style={{ color: c.accent }}>
+                {minutes}
+                <Text type="small" themeColor="textSecondary">
+                  {' '}
+                  min
+                </Text>
+              </Text>
+              <Text type="smallBold">Recorded today</Text>
+              <Text type="small" themeColor="textSecondary">
+                {today.length} recordings today
+              </Text>
+            </View>
+            <CoverageRing value={coverage} />
+          </Row>
           <Divider />
+          {(['Running', 'Walking'] as const).map((activity) => (
+            <ActivityBar
+              key={activity}
+              label={activity}
+              minutes={today
+                .filter((session) => session.activity === activity)
+                .reduce((sum, session) => sum + session.minutes, 0)}
+              total={minutes}
+            />
+          ))}
           <Row wrap>
             <Text type="small" themeColor="textSecondary">
-              {coverage}% valid recording coverage
+              Share of recorded time
             </Text>
             <Text type="small" style={{ color: c.accent }}>
               Latest sync · 10:24
@@ -99,8 +127,8 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`View ${joint.name}`}
                 style={{
-                  paddingVertical: s.three,
-                  paddingHorizontal: s.three,
+                  paddingVertical: 20,
+                  paddingHorizontal: 20,
                   backgroundColor: c.backgroundElement,
                   borderRadius: 24,
                   borderWidth: 1,
@@ -117,7 +145,12 @@ export default function HomeScreen() {
                 </Row>
                 <Row>
                   <View>
-                    <Text type="subtitle">{rom(joint, today[0])}°</Text>
+                    <Text type="subtitle">
+                      {rom(joint, today[0])}
+                      <Text type="small" themeColor="textSecondary">
+                        °
+                      </Text>
+                    </Text>
                     <Text type="small" themeColor="textSecondary">
                       Movement range
                     </Text>
@@ -140,6 +173,12 @@ export default function HomeScreen() {
                     color={c.textSecondary}
                   />
                 </Row>
+                <JointRangeScale
+                  value={rom(joint, today[0])}
+                  low={reference(joint, today[0].activity).low}
+                  high={reference(joint, today[0].activity).high}
+                  ready={joint.baselineReady}
+                />
               </Pressable>
             </Link>
           ))}

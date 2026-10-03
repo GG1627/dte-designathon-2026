@@ -6,7 +6,6 @@ export function TabStack({ title }: { title: string }) {
     <Stack
       screenOptions={{
         headerShown: false,
-        headerLargeTitleEnabled: true,
         headerStyle: { backgroundColor: c.background },
         headerLargeStyle: { backgroundColor: c.background },
         headerTitleStyle: { color: c.text },
