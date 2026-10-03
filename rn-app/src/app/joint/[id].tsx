@@ -3,158 +3,72 @@ import { Stack } from 'expo-router/stack';
 import { useState } from 'react';
 import { isOnline, useDemo } from '@/components/demo-provider';
 import { LandingBaseline } from '@/components/landing-baseline';
-import {
-  Action,
-  Badge,
-  DemoHeader,
-  DeviceSheet,
-  Metric,
-  Panel,
-  Row,
-  Screen,
-  Section,
-  SessionRow,
-} from '@/components/monitoring-ui';
+import { Action, Badge, DemoHeader, DeviceSheet, Divider, Panel, Row, Screen, Section, SessionRow, Sheet } from '@/components/monitoring-ui';
+import { SelectionControl } from '@/components/selection-control';
 import { ThemedText as Text } from '@/components/themed-text';
-import { formatDate, jointSessions, joints, reference, rom } from '@/data/demo';
+import { Palette as c } from '@/constants/theme';
+import { formatDate, jointSessions, joints, rom } from '@/data/demo';
 
 export default function JointDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [open, setOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [assessmentsOpen, setAssessmentsOpen] = useState(false);
+  const [activity, setActivity] = useState('Running');
   const { online } = useDemo();
   const joint = joints.find((item) => item.id === id);
-  if (!joint)
-    return (
-      <Screen>
-        <Text type="subtitle">Joint not found</Text>
-        <Action href="/joints">Go to your joints</Action>
-      </Screen>
-    );
+  if (!joint) return <Screen><Text type="subtitle">Joint not found</Text><Action href="/joints">Go to your joints</Action></Screen>;
   const history = jointSessions(joint);
-  const latest = history[0];
-  const baseline = reference(joint, latest?.activity ?? 'Running');
-  return (
-    <>
-      <Stack.Screen options={{ title: joint.name }} />
-      <Screen>
-        <DemoHeader
-          label={
-            latest
-              ? `Latest recording · ${formatDate(latest.date)}`
-              : 'No recordings'
-          }
-        />
-        <Row>
-          <Badge muted={!isOnline(joint, online)}>
-            {joint.monitored
-              ? isOnline(joint, online)
-                ? 'Online · demo'
-                : 'Offline · demo'
-              : 'Not monitored'}
-          </Badge>
-          <Action onPress={() => setOpen(true)}>View setup</Action>
-        </Row>
-        {latest ? (
-          <>
-            <Panel>
-              <Text type="smallBold">
-                Latest {latest.activity.toLowerCase()} recording
-              </Text>
-              <Row wrap>
-                <Metric
-                  label="Movement range"
-                  value={String(rom(joint, latest))}
-                  unit="°"
-                  detail={`The angle range observed during this ${latest.activity.toLowerCase()} recording for the ${joint.name.toLowerCase()}. It is activity-specific movement range, not maximum joint capacity.`}
-                />
-                <Metric
-                  label="Movement cycles"
-                  value={latest.cycles.toLocaleString()}
-                  detail="Detected activity-specific movement cycles. This derived count describes repetition exposure, not internal tissue stress."
-                />
-                <Metric
-                  label="Activity duration"
-                  value={String(latest.minutes)}
-                  unit="min"
-                  detail="Elapsed duration of the recorded activity. Invalid or missing samples are described separately by recording coverage."
-                />
-                <Metric
-                  label="Valid coverage"
-                  value={String(latest.coverage)}
-                  unit="%"
-                  detail="Percentage of the recording duration with valid samples. Gaps are not filled with zero movement."
-                />
-              </Row>
-            </Panel>
-            {joint.anatomy === 'Knee' ? <LandingBaseline initialSide={joint.id.startsWith('left') ? 'left' : 'right'} /> : <Section title="Personal baseline">
-              <Panel>
-                <Badge muted={baseline === null}>
-                  {baseline !== null
-                    ? 'Reference available'
-                    : 'Still learning'}
-                </Badge>
-                <Text type="subtitle">
-                  {baseline !== null
-                    ? `${baseline.low}–${baseline.high}°`
-                    : 'Building a comparable history'}
-                </Text>
-                <Text themeColor="textSecondary">
-                  {baseline !== null
-                    ? `Illustrative historical movement range for ${latest.activity.toLowerCase()}, with the same joint and pod placement. A usual pattern is a reference, not proof of ideal mechanics.`
-                    : 'No learned reference is available for this joint and activity. Keep activity and attachment conditions consistent.'}
-                </Text>
-              </Panel>
-            </Section>}
-            <Section title="Functional assessments">
-              {joint.anatomy === 'Knee' ? (
-                <Panel>
-                  <Badge muted>Demo assessment</Badge>
-                  <Text type="smallBold">Standardized movement check</Text>
-                  <Text type="metric">128°</Text>
-                  <Text type="small" themeColor="textSecondary">
-                    Sep 29 · example heel-slide check
-                  </Text>
-                  <Text type="small">
-                    Previous: 126° on Sep 22, under the same example conditions.
-                  </Text>
-                  <Text type="small" themeColor="textSecondary">
-                    Assessment results are kept separate from activity movement
-                    range.
-                  </Text>
-                </Panel>
-              ) : (
-                <Text themeColor="textSecondary">
-                  No functional assessments recorded for this joint.
-                </Text>
-              )}
-              <Panel>
-                <Text type="smallBold">Strength · unavailable</Text>
-                <Text type="small" themeColor="textSecondary">
-                  Force or torque requires a calibrated strength-assessment
-                  setup. No strength accessory is connected.
-                </Text>
-              </Panel>
-            </Section>
-            <Section title="Recent recordings">
-              {history.slice(0, 4).map((session) => (
-                <SessionRow key={session.id} session={session} />
-              ))}
-            </Section>
-          </>
-        ) : (
+  const latest = history.find((session) => session.activity === activity);
+  const landing = activity === 'Landings';
+  const activities = ['Running', 'Walking', ...(joint.anatomy === 'Knee' ? ['Landings'] : [])];
+  return <>
+    <Stack.Screen options={{ title: joint.name }} />
+    <Screen>
+      <DemoHeader label={landing ? 'Landing comparison' : latest ? `Latest recording · ${formatDate(latest.date)}` : 'No recordings'} />
+      {!joint.monitored ? <Panel>
+        <Text type="subtitle">No measurements yet</Text>
+        <Text themeColor="textSecondary">Connect devices to start recording this joint.</Text>
+        <Action onPress={() => setSetupOpen(true)}>View setup</Action>
+      </Panel> : <>
+        <SelectionControl label="Activity" value={activity} onChange={setActivity}
+          options={activities.map((value) => ({ value, label: value }))} />
+        {!isOnline(joint, online) ? <Text type="small" themeColor="textSecondary">Device offline · showing recorded data</Text> : null}
+        {landing ? <LandingBaseline mode="summary" initialSide={joint.id.startsWith('left') ? 'left' : 'right'} /> : latest ? <>
           <Panel>
-            <Text type="subtitle">No measurements yet</Text>
-            <Text themeColor="textSecondary">
-              This joint has no assigned devices or recorded activity. Its
-              range, exposure, and baseline remain unavailable.
-            </Text>
-            <Action onPress={() => setOpen(true)}>
-              See attachment requirements
-            </Action>
+            <Row><Text type="smallBold">Movement range</Text><Action onPress={() => setDetailsOpen(true)}>Details</Action></Row>
+            <Text type="metric" style={{ color: c.accent }}>{rom(joint, latest)}<Text type="subtitle" themeColor="textSecondary">°</Text></Text>
+            <Text type="small" themeColor="textSecondary">{latest.activity} · {latest.minutes} min</Text>
+            <Divider />
+            <Text type="small" themeColor="textSecondary">No {latest.activity.toLowerCase()} reference available.</Text>
           </Panel>
-        )}
-      </Screen>
-      <DeviceSheet joint={joint} open={open} onClose={() => setOpen(false)} />
-    </>
-  );
+          <Section title="Recent recordings">
+            {history.filter((session) => session.activity === activity).slice(0, 2).map((session) => <SessionRow key={session.id} session={session} />)}
+          </Section>
+        </> : <Text themeColor="textSecondary">No recordings for this activity.</Text>}
+        <Row wrap><Action onPress={() => setAssessmentsOpen(true)}>Assessments</Action><Action onPress={() => setSetupOpen(true)}>Device setup</Action></Row>
+      </>}
+    </Screen>
+    <DeviceSheet joint={joint} open={setupOpen} onClose={() => setSetupOpen(false)} />
+    <Sheet title="Recording details" open={detailsOpen} onClose={() => setDetailsOpen(false)}>
+      {latest ? <>
+        <Text>{joint.name} · {latest.activity} · {formatDate(latest.date)}</Text>
+        <Row wrap><Text>Movement cycles</Text><Text>{latest.cycles.toLocaleString()}</Text></Row>
+        <Row wrap><Text>Valid coverage</Text><Text>{latest.coverage}%</Text></Row>
+        <Text type="small" themeColor="textSecondary">Movement range describes this activity, not maximum joint capacity. Missing samples are not filled with zero.</Text>
+      </> : null}
+    </Sheet>
+    <Sheet title="Assessments" open={assessmentsOpen} onClose={() => setAssessmentsOpen(false)}>
+      {joint.anatomy === 'Knee' ? <>
+        <Badge muted>Demo movement check</Badge>
+        <Text type="subtitle">128°</Text>
+        <Text>Heel-slide check · Sep 29</Text>
+        <Text type="small">Previous: 126° on Sep 22 under the same example conditions.</Text>
+        <Text type="small" themeColor="textSecondary">Assessment range stays separate from activity movement range.</Text>
+      </> : <Text>No movement assessments recorded.</Text>}
+      <Divider />
+      <Text type="smallBold">Strength unavailable</Text>
+      <Text type="small" themeColor="textSecondary">Requires a calibrated strength-assessment accessory.</Text>
+    </Sheet>
+  </>;
 }

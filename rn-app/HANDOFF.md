@@ -9,11 +9,12 @@ Kintra names both the wearable platform and companion app. This is a designathon
 | Route | Implemented experience |
 | --- | --- |
 | `/` | Branded welcome, K mark, "Your movement, understood." Get started replaces this route with `/home`. |
-| `/home` | Recorded minutes, coverage ring, running/walking duration bars, joint ROM and cycles, reference scales, insight, horizontal activity cards. |
-| `/trends` | Joint/week/month/activity filters, movement-range chart, reference band, period comparisons, exact-data sheet, recordings and empty states. |
-| `/joints` | Monitored/unmonitored joints, simulated connection status, links to details. |
-| `/joint/[id]` | Measurements, baseline context, device/placement sheet, sample functional assessment information. |
-| `/session/[id]` | Recording summary and measurement context. |
+| `/home` | Both monitored joints visible first, latest activity card, quiet daily duration summary, device sheet. |
+| `/trends` | One joint/activity at a time, week/month range chart, concise period difference, exact-data and quality sheets. Landings show a compact learned comparison. |
+| `/joints` | Monitored joints first; unmonitored joints available through Other joints. |
+| `/joint/[id]` | Activity-specific primary range or landing comparison; cycles, coverage, assessments and setup behind a tap. |
+| `/session/[id]` | Recorded duration and joint ranges; coverage, cycles and context in Details. |
+| `/demo-lab` | Separate synthetic experiment: participant, side, scenario and history-size controls, full metric/history/quality inspection. |
 
 Native uses native tabs; web has a separate tab-bar component. Sheets/pickers use `@expo/ui`. The smooth coverage ring and header K mark use `react-native-svg`.
 
@@ -28,7 +29,7 @@ Native uses native tabs; web has a separate tab-bar component. Sheets/pickers us
 
 - Preserve rounded cards, quiet borders, large numbers/smaller units, compact branded headers, and the K motif.
 - Keep welcome-screen colors consistent with shared theme tokens in `src/constants/theme.ts`.
-- The ring is valid recording coverage; duration bars show shares of recorded time; joint scales show degrees and a labeled personal reference. These are not goal completion or health scores.
+- Lead with joint measurements; keep coverage, cycles and methodology in details. Avoid restoring the large coverage ring, activity bars, or repeated reference controls to everyday screens.
 - Orange shows observed movement; blue shows the reference. Developing baselines have no reference band.
 - Filtered charts have a short fade/small movement with reduced-motion support: Reanimated on native, CSS on web. Tabs retain platform behavior.
 - ScrollView automatic adjustment owns top insets. Adding manual `insets.top` padding as well caused excess space above headers.
@@ -40,7 +41,7 @@ Native uses native tabs; web has a separate tab-bar component. Sheets/pickers us
 - Right knee and ankle are monitored. Other joints have no data. The ankle baseline is developing.
 - The lower-leg pod is shared by knee and ankle; simulating it offline affects both.
 - Connection toggles/checklist confirmations live in `demo-provider.tsx` memory and reset on reload.
-- Trends compare the same joint/activity and exclude recordings below 80% valid coverage. References are illustrative.
+- Running/walking Trends compare the same joint/activity and exclude recordings below 80% valid coverage. They have no learned reference. Landing comparisons display actual Python learner results from the bundled synthetic snapshot.
 - No Bluetooth, backend, authentication, persistent storage, hardware calibration, or validated inference pipeline is connected.
 - Main measurements: ROM, cycles, duration, coverage. Strength needs instrumented assessment hardware; do not derive it from motion alone or invent readiness/injury scores.
 - Display name is Kintra. Slug, scheme, icons and splash artwork still use starter configuration/assets and need a branding pass before release.
@@ -75,7 +76,7 @@ npx expo lint
 npx tsc --noEmit
 ```
 
-Lint and TypeScript passed after the latest activity-card fix. Home and week/month Trends were visually reviewed in a 375 x 812 browser preview; recent-activity cards were reviewed after their fix. Native iOS/Android behavior and release-build motion have not been verified. No automated interaction test suite was added.
+The simplified-screen pass passed lint, TypeScript and `npx expo export --platform web`. Playwright reviewed the local preview at 375 x 812, 1280 x 900 and 812 x 375, including reduced-motion rendering. Interaction checks covered Home-to-joint navigation, running/walking/landing switching, reference and recording sheets, month exclusions, unmonitored joints, session details, and Demo Lab dropout/insufficient history. Console showed no app errors; Reanimated's expected reduced-motion development warning was present. Native iOS/Android, large system text and release-build motion remain unverified. Screenshots and temporary interaction checks are outside the repository.
 
 ### Windows generated-route cache issue
 
@@ -95,8 +96,10 @@ The internal tooling path is specific to the installed SDK 57 layout; check it i
 Run `python -B scripts/run_baseline_demo.py` from the repository root to refresh
 `src/data/baseline-results.json`. `learned-baselines.ts` exposes the generated
 results, and `landing-baseline.tsx` displays them on Trends and monitored knee
-detail. Controls switch among three synthetic participant histories, ten held-out
-evaluation scenarios, both sides, and 3/5/10/20 reference sessions. History & quality
+detail when Landings is selected. Those compact views use Athlete A, balanced
+evaluation and five reference sessions. The Demo Lab controls switch among three
+synthetic participant histories, ten held-out evaluation scenarios, both sides,
+and 3/5/10/20 reference sessions; selections affect the Lab only. History & quality
 shows session medians, MAD, exclusions, and descriptive comparisons. Python is
 the only learner; the app consumes frozen snapshots offline. Running/walking
 charts have no learned reference. See `../docs/baseline-demo.md` for assumptions.

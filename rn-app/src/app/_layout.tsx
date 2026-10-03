@@ -40,6 +40,7 @@ export default function TabLayout() {
           <Stack.Screen name="index" options={{ headerShown: false, title: 'Kintra' }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="joint/[id]" options={{ title: 'Joint detail' }} />
+          <Stack.Screen name="demo-lab" options={{ title: 'Demo Lab' }} />
           <Stack.Screen
             name="session/[id]"
             options={{ title: 'Session summary' }}
