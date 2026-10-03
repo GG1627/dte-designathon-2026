@@ -126,7 +126,8 @@ def context(data, rules):
     # schema, and sampling settings must also match. No scenario label is consulted.
     processing = dict(data["processing"])
     # Descriptions of synthetic noise are not a change to the actual filter method.
-    processing["filter"] = processing["filter"].split(";")[0].strip()
+    if isinstance(processing.get("filter"), str):
+        processing["filter"] = processing["filter"].split(";")[0].strip()
     configuration = {"schema_version": data["schema_version"],
                      "rate_hz": data["sampling"]["rate_hz"],
                      "clock": data["sampling"]["clock"],

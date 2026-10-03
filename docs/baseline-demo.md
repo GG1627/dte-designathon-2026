@@ -165,6 +165,12 @@ Reference fits at 3/5/10/20 sessions use chronological prefixes; each fit is fro
 
 ## App consumption
 
+For the upstream raw-IMU/Madgwick connection, run
+`python -B scripts/run_baseline_demo.py --sensor-pipeline`. This processes both
+references and evaluations consistently, writes separate outputs, and leaves
+the app snapshot intact. See [pipeline integration](pipeline-integration.md)
+for responsibilities, compatibility fixes and remaining sensor limitations.
+
 After running the Python command, start the existing app with `cd rn-app` then `npx expo start` (or `npx expo start --web --port 8085`). Trends and the monitored knee detail show the generated landing reference. Select participant, side, evaluation challenge, and history size; open **History & quality** for contributing session medians, stability, rejected events, and descriptive standardized differences.
 
 The app imports `src/data/baseline-results.json` through `learned-baselines.ts`; it displays Python results rather than implementing a second learner. Angles convert to degrees only for display. There is no live ingestion, persistent user history, or automatic background learning. Running/walking demo charts retain their sample data but show no learned activity reference, because a bilateral-landing baseline is incompatible with those activities. Regenerate the snapshot after changing learner rules or synthetic generation.

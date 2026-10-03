@@ -1,12 +1,12 @@
 {
-  "analysis_version": "0.1.0",
+  "analysis_version": "0.2.0",
   "session_id": "mock_balanced_raw_001",
   "activity": "bilateral_landing",
   "synthetic": true,
   "source_file": "data/processed/mock_balanced_processed.json",
   "definitions": {
     "window": "inclusive start and end; sampled extrema",
-    "force": "external plantar / ground-reaction normal force, not internal knee force",
+    "force": "external plantar normal force; not validated ground-reaction or internal knee force",
     "body_weight_n": 735.49875,
     "contact_threshold_n": 20.0,
     "contact_time": "sum of sample intervals above threshold; no crossing interpolation",
@@ -14,6 +14,7 @@
     "loading_rate": "average dF/dt from first above-threshold sample to peak, N/s",
     "pressure_means": "arithmetic means over valid above-threshold contact samples",
     "asymmetry": "abs(left-right) / ((left+right)/2) * 100; null if denominator is zero",
+    "signed_asymmetry": "100 * (right-left) / ((left+right)/2); positive means right greater",
     "missing_data": "no interpolation; incomplete signals yield null metrics with reasons"
   },
   "events": [
@@ -38,7 +39,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.55,
-          "impulse_n_s": 375.10436249999987,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360274,
           "quality": {
             "valid": true,
@@ -74,7 +75,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.55,
-          "impulse_n_s": 375.10436249999987,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360274,
           "quality": {
             "valid": true,
@@ -102,6 +103,11 @@
           "peak_angular_acceleration_asymmetry_percent": 3.4769034391766485
         },
         "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.305146234642315,
           "peak_force_asymmetry_percent": 0.0,
           "impulse_asymmetry_percent": 0.0
         }
@@ -194,6 +200,11 @@
         "loading": {
           "peak_force_asymmetry_percent": 0.0,
           "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.288495536936001,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
         }
       }
     },
@@ -218,7 +229,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 375.1043624999999,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360279,
           "quality": {
             "valid": true,
@@ -254,7 +265,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 375.1043624999999,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360279,
           "quality": {
             "valid": true,
@@ -282,6 +293,11 @@
           "peak_angular_acceleration_asymmetry_percent": 3.3762884734712206
         },
         "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.277660544747465,
           "peak_force_asymmetry_percent": 0.0,
           "impulse_asymmetry_percent": 0.0
         }

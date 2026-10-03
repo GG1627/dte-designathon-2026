@@ -1,4 +1,5 @@
 """TEST ONLY: emulate ideal Kintra IMUs and balanced smart-insole packets."""
+import copy
 import json
 import math
 from pathlib import Path
@@ -22,8 +23,20 @@ def imu_packet(angle, angular_velocity):
 
 def generate_fixture():
     # Reuse the existing deterministic generator in memory; never rewrite mocks.
-    data = session("balanced")
+    data = to_raw_session(session("balanced"))
     data["session_id"] = "mock_balanced_raw_001"
+    return data
+
+
+def to_raw_session(source):
+    """Emulate ideal IMUs from synthetic extracted motion, retaining session context.
+
+    This is a software test round-trip, not recovery of real raw measurements.
+    Insole packets (including missing readings) pass through unchanged.
+    """
+    if source.get("synthetic") is not True:
+        raise ValueError("Ideal IMU emulation requires explicitly synthetic input")
+    data = copy.deepcopy(source)
     data["processing"] = {
         "stage": "raw_sensor_fixture", "synthetic": True,
         "imu_model": "ideal gravity specific force plus analytic angular velocity",
@@ -40,6 +53,8 @@ def generate_fixture():
                "ground_truth": {}}
         for side in ("left", "right"):
             motion = sample[side]["knee"]
+            if motion.get("quality", {}).get("valid") is not True:
+                raise ValueError("Cannot emulate valid IMUs from invalid knee motion")
             angle = motion["flexion_rad"]
             raw[side] = {
                 "imu": {"thigh": imu_packet(0.0, 0.0),
@@ -49,7 +64,6 @@ def generate_fixture():
             raw["ground_truth"][f"{side}_knee_flexion_rad"] = angle
         raw_samples.append(raw)
     data["samples"] = raw_samples
-    assert len(raw_samples) == 600
     return data
 
 

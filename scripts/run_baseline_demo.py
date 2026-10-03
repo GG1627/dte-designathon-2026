@@ -19,16 +19,26 @@ def file_hash(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run_demo(output=OUTPUT, seed=20261003, rules=Rules(), include_experiments=False, app_output=None):
+def run_demo(output=OUTPUT, seed=20261003, rules=Rules(), include_experiments=False,
+             app_output=None, sensor_pipeline=False):
     """Replace named generated outputs only; app export is explicitly selected by CLI."""
+    if sensor_pipeline and output == OUTPUT:
+        output = OUTPUT / "sensor_pipeline"
     fixture_paths = [ROOT / "data" / "mock" / f"{name}.json" for name in FIXTURES]
     original_hashes = {path.name: file_hash(path) for path in fixture_paths}
     references = generate_reference_history(seed)
+    evaluation_inputs = [evaluation_fixture(json.loads(path.read_text(encoding="utf-8")), index + 6)
+                         for index, path in enumerate(fixture_paths)]
+    if sensor_pipeline:
+        if include_experiments or app_output is not None:
+            raise ValueError("Sensor round-trip uses separate outputs, without the ideal-angle app export")
+        from generate_raw_sensor_fixture import to_raw_session
+        from process_sensor_session import process_session
+        references = [process_session(to_raw_session(s)) for s in references]
+        evaluation_inputs = [process_session(to_raw_session(s)) for s in evaluation_inputs]
     reference_metrics = [summarize_session(extract_session(s, rules), rules) for s in references]
     baseline = fit_baseline(reference_metrics, rules)
-    evaluations = [summarize_session(extract_session(
-        evaluation_fixture(json.loads(path.read_text(encoding="utf-8")), index + 6), rules), rules)
-        for index, path in enumerate(fixture_paths)]
+    evaluations = [summarize_session(extract_session(s, rules), rules) for s in evaluation_inputs]
     baseline_before = json.dumps(baseline, sort_keys=True, allow_nan=False)
     evaluated = compare_evaluations(baseline, evaluations)
     if baseline_before != json.dumps(baseline, sort_keys=True, allow_nan=False):
@@ -40,6 +50,7 @@ def run_demo(output=OUTPUT, seed=20261003, rules=Rules(), include_experiments=Fa
     outputs.update({"reference_metrics.json": reference_metrics, "baseline.json": baseline,
                     "evaluations.json": evaluated,
                     "manifest.json": {"synthetic": True, "seed": seed, "rules": baseline["rules"],
+                                      "sensor_pipeline": sensor_pipeline,
                                       "reference_session_ids": baseline["reference_session_ids"],
                                       "evaluation_session_ids": [s["session_id"] for s in evaluated],
                                       "original_fixture_sha256": original_hashes,
@@ -73,11 +84,16 @@ def main():
     parser.add_argument("--seed", type=int, default=20261003)
     parser.add_argument("--min-valid-events", type=int, default=3)
     parser.add_argument("--min-reference-sessions", type=int, default=5)
+    parser.add_argument("--sensor-pipeline", action="store_true",
+                        help="Round-trip references and evaluations through ideal raw IMUs and Madgwick; separate outputs")
     args = parser.parse_args()
     rules = Rules(min_valid_events=args.min_valid_events,
                   min_reference_sessions=args.min_reference_sessions)
-    baseline, evaluations = run_demo(seed=args.seed, rules=rules, include_experiments=True,
-                                    app_output=ROOT / "rn-app/src/data/baseline-results.json")
+    output = OUTPUT / "sensor_pipeline" if args.sensor_pipeline else OUTPUT
+    baseline, evaluations = run_demo(output=output, seed=args.seed, rules=rules,
+                                    include_experiments=not args.sensor_pipeline,
+                                    app_output=None if args.sensor_pipeline else ROOT / "rn-app/src/data/baseline-results.json",
+                                    sensor_pipeline=args.sensor_pipeline)
     ready = sum(m["status"] == "ready" for m in baseline["metrics"])
     print(f"Synthetic history: 5 reference sessions x 6 bilateral landings; {ready}/6 baseline metrics ready.")
     for session in evaluations:
@@ -95,9 +111,12 @@ def main():
     print(f"Dropout: {left_force['valid_event_count']} valid left-insole events; "
           f"left force comparison {left_force['status']} (minimum {rules.min_valid_events}). "
           "Knee events remain valid.")
-    print(f"JSON results: {OUTPUT.relative_to(ROOT).as_posix()}/")
-    print("Experiments: 3 participant patterns, 10 evaluation scenarios, history sizes 3/5/10/20.")
-    print("App snapshot refreshed: rn-app/src/data/baseline-results.json")
+    print(f"JSON results: {output.relative_to(ROOT).as_posix()}/")
+    if args.sensor_pipeline:
+        print("References and evaluations both use ideal IMU emulation and Madgwick. App snapshot unchanged.")
+    else:
+        print("Experiments: 3 participant patterns, 10 evaluation scenarios, history sizes 3/5/10/20.")
+        print("App snapshot refreshed: rn-app/src/data/baseline-results.json")
     print("Software demonstration only; no real-sensor or medical validation.")
 
 

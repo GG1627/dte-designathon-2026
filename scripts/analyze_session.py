@@ -6,6 +6,8 @@ from pathlib import Path
 from statistics import mean
 
 from analyze_knee_kinematics import asymmetry_percent, summarize_knee
+from baseline_simulation import Rules, window_reasons
+from generate_mock_data import reconstructed_force, PRESSURE_FORCE_REL_TOL, PRESSURE_FORCE_ABS_TOL_N
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTACT_THRESHOLD_N = 20.0
@@ -25,10 +27,10 @@ def unavailable(keys, reasons):
 
 
 def valid_number(value):
-    return isinstance(value, (int, float)) and math.isfinite(value)
+    return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
-def summarize_side(samples, side, body_weight_n, window_reasons):
+def summarize_side(samples, side, body_weight_n, window_reasons, cells):
     motion = [sample[side]["knee"] for sample in samples]
     feet = [sample[side]["insole"] for sample in samples]
     knee_reasons = list(window_reasons)
@@ -36,13 +38,29 @@ def summarize_side(samples, side, body_weight_n, window_reasons):
         "flexion_rad", "angular_velocity_rad_s", "angular_acceleration_rad_s2"
     )) for row in motion):
         knee_reasons.append("invalid_knee_samples")
+    if any(not valid_number(row.get("timestamp_s", sample["timestamp_s"]))
+           or abs(row.get("timestamp_s", sample["timestamp_s"]) - sample["timestamp_s"]) > 1e-8
+           for sample, row in zip(samples, motion)):
+        knee_reasons.append("unaligned_knee_timestamp")
     kinematics = (unavailable(KINEMATIC_KEYS, knee_reasons) if knee_reasons else {
         **summarize_knee(samples, side), "quality": {"valid": True, "reasons": []},
     })
     force_reasons = list(window_reasons)
-    for row in feet:
-        if not row["quality"]["valid"] or not valid_number(row["plantar_normal_force_n"]):
+    for sample, row in zip(samples, feet):
+        force = row["plantar_normal_force_n"]
+        if not row["quality"]["valid"] or not valid_number(force) or force < 0:
             force_reasons.extend(row["quality"]["reasons"] or ["invalid_insole_samples"])
+        packet_time = row.get("timestamp_s", sample["timestamp_s"])
+        if not valid_number(packet_time) or abs(packet_time - sample["timestamp_s"]) > 1e-8:
+            force_reasons.append("unaligned_insole_timestamp")
+        if row["quality"]["valid"]:
+            try:
+                reconstructed = reconstructed_force(row.get("cell_pressures_pa"), cells)
+                if valid_number(force) and not math.isclose(reconstructed, force,
+                        rel_tol=PRESSURE_FORCE_REL_TOL, abs_tol=PRESSURE_FORCE_ABS_TOL_N):
+                    force_reasons.append("inconsistent_pressure_force")
+            except ValueError as error:
+                force_reasons.append(str(error))
     if force_reasons:
         reasons = sorted(set(force_reasons))
         return {"kinematics": kinematics, "loading": unavailable(LOADING_KEYS, reasons),
@@ -108,12 +126,12 @@ def analyze_session(data, source_file=None):
     mass = data["participant"]["mass_kg"]
     body_weight = mass * 9.80665 if valid_number(mass) and mass > 0 else None
     analysis = {
-        "analysis_version": "0.1.0", "session_id": data["session_id"],
+        "analysis_version": "0.2.0", "session_id": data["session_id"],
         "activity": data["activity"], "synthetic": data["synthetic"],
         "source_file": source_file,
         "definitions": {
             "window": "inclusive start and end; sampled extrema",
-            "force": "external plantar / ground-reaction normal force, not internal knee force",
+            "force": "external plantar normal force; not validated ground-reaction or internal knee force",
             "body_weight_n": body_weight,
             "contact_threshold_n": CONTACT_THRESHOLD_N,
             "contact_time": "sum of sample intervals above threshold; no crossing interpolation",
@@ -121,28 +139,30 @@ def analyze_session(data, source_file=None):
             "loading_rate": "average dF/dt from first above-threshold sample to peak, N/s",
             "pressure_means": "arithmetic means over valid above-threshold contact samples",
             "asymmetry": "abs(left-right) / ((left+right)/2) * 100; null if denominator is zero",
+            "signed_asymmetry": "100 * (right-left) / ((left+right)/2); positive means right greater",
             "missing_data": "no interpolation; incomplete signals yield null metrics with reasons",
         },
         "events": [],
     }
-    nominal_step = 1 / data["sampling"]["rate_hz"]
+    stream_reasons = set()
+    times = [row.get("timestamp_s") for row in data["samples"]]
+    if any(not valid_number(t) for t in times):
+        stream_reasons.add("invalid_timestamp")
+    finite_times = [t for t in times if valid_number(t)]
+    if any(b <= a for a, b in zip(finite_times, finite_times[1:])):
+        stream_reasons.add("non_monotonic_timestamps")
     for annotation in data["annotations"]:
         if annotation["type"] != "synthetic_landing_window":
             continue
         start, end = annotation["start_s"], annotation["end_s"]
-        samples = [row for row in data["samples"] if start <= row["timestamp_s"] <= end]
-        reasons = []
-        if len(samples) < 2:
-            reasons.append("insufficient_samples")
-        elif (samples[0]["timestamp_s"] - start > nominal_step * 1.5
-              or end - samples[-1]["timestamp_s"] > nominal_step * 1.5
-              or any(not 0 < b["timestamp_s"] - a["timestamp_s"] <= nominal_step * 1.5
-                     for a, b in zip(samples, samples[1:]))):
-            reasons.append("incomplete_window_or_timestamp_gap")
+        samples = [row for row in data["samples"] if valid_number(row.get("timestamp_s"))
+                   and valid_number(start) and valid_number(end) and start <= row["timestamp_s"] <= end]
+        reasons = sorted(window_reasons(samples, start, end, data["sampling"]["rate_hz"],
+                                        Rules(), stream_reasons))
         event = {"event_id": annotation["event_id"], "start_s": start, "end_s": end,
                  "sample_count": len(samples)}
         for side in ("left", "right"):
-            event[side] = summarize_side(samples, side, body_weight, reasons)
+            event[side] = summarize_side(samples, side, body_weight, reasons, data["insole_geometry"][side])
         left, right = event["left"]["kinematics"], event["right"]["kinematics"]
         event["bilateral"] = {
             "kinematics": {
@@ -156,6 +176,19 @@ def analyze_session(data, source_file=None):
                 "impulse_asymmetry_percent": compare(event["left"]["loading"], event["right"]["loading"], "impulse_n_s"),
             },
         }
+        # Preserve legacy absolute fields and expose direction explicitly.
+        event["bilateral"]["signed_asymmetry_percent"] = {}
+        for key, left_value, right_value in (
+            ("rom_asymmetry_percent", left["rom_deg"], right["rom_deg"]),
+            ("peak_force_asymmetry_percent", event["left"]["loading"]["peak_plantar_normal_force_n"],
+             event["right"]["loading"]["peak_plantar_normal_force_n"]),
+            ("impulse_asymmetry_percent", event["left"]["loading"]["impulse_n_s"],
+             event["right"]["loading"]["impulse_n_s"]),
+        ):
+            denominator = ((left_value + right_value) / 2
+                           if left_value is not None and right_value is not None else None)
+            event["bilateral"]["signed_asymmetry_percent"][key] = (
+                100 * (right_value - left_value) / denominator if denominator else None)
         analysis["events"].append(event)
     return analysis
 

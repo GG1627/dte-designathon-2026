@@ -96,3 +96,18 @@ only the demo's named outputs and its tracked result snapshot at
 results separately from running/walking demo history; it does not learn live.
 See [the baseline demo documentation](../docs/baseline-demo.md) for schema
 extensions, statistical/quality rules, limitations, and focused tests.
+
+## Raw IMU and processed-session experiment
+
+`raw/mock_balanced_raw.json` contains ideal synthetic thigh/shank accelerometer
+and gyro packets plus already-calibrated insole data. Ground truth is explicitly
+validation-only. `processed/mock_balanced_processed.json` contains estimated
+orientations, knee angles and finite-difference derivatives. `derived/` contains
+diagnostic session reports, not inputs to the baseline fitter.
+
+Run `python -B scripts/run_baseline_demo.py --sensor-pipeline` to route reference
+history and held-out fixtures through ideal IMU emulation and Madgwick together.
+Results go to `baseline_demo/sensor_pipeline/`; original fixtures and the app
+snapshot are preserved. Analytic and Madgwick contexts cannot share a reference.
+See [pipeline integration](../docs/pipeline-integration.md) for exact conventions,
+quality policies, report version 0.2.0, commands and limitations.
