@@ -50,9 +50,12 @@ def validate_timestamps(data):
 
 def calibrate_imu(packet):
     """Explicit identity sensor-to-segment stage; no corrections for ideal mounting."""
+    if packet.get("quality", {}).get("valid", True) is not True:
+        raise ValueError("Invalid IMU quality; interpolation is not supported")
     gyro = tuple(packet["gyro_rad_s"][axis] for axis in ("x", "y", "z"))
     accel = tuple(packet["accel_m_s2"][axis] for axis in ("x", "y", "z"))
-    if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in gyro + accel):
+    if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
+               and math.isfinite(value) for value in gyro + accel):
         raise ValueError("Missing or nonfinite IMU sample; interpolation is not supported")
     return gyro, accel
 
@@ -84,7 +87,7 @@ def process_session(raw):
         "schema_version", "session_id", "activity", "synthetic", "participant",
         "sampling", "sources", "insole_geometry", "annotations",
     )}
-    for key in ("scenario", "phases"):
+    for key in ("scenario", "phases", "baseline_demo"):
         if key in raw:
             processed[key] = copy.deepcopy(raw[key])
     processed["processing"] = {
@@ -126,7 +129,13 @@ def process_session(raw):
             orientations = {}
             calibrated_gyros = {}
             for segment in ("thigh", "shank"):
-                gyro, accel = calibrate_imu(row[side]["imu"][segment])
+                packet = row[side]["imu"][segment]
+                packet_time = packet.get("timestamp_s", row["timestamp_s"])
+                if (not isinstance(packet_time, (int, float)) or isinstance(packet_time, bool)
+                        or not math.isfinite(packet_time)
+                        or not math.isclose(packet_time, row["timestamp_s"], rel_tol=0, abs_tol=1e-8)):
+                    raise ValueError("Unaligned IMU timestamp; clock correction is not supported")
+                gyro, accel = calibrate_imu(packet)
                 calibrated_gyros[segment] = gyro
                 orientation = filters[side, segment]
                 if i:

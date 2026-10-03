@@ -5,7 +5,7 @@ import json
 import math
 from pathlib import Path
 
-from generate_mock_data import insole, session
+from generate_mock_data import insole, knee, session
 
 OUTPUT = Path(__file__).resolve().parents[1] / "data" / "raw" / "mock_training_20_landings_raw.json"
 
@@ -24,8 +24,20 @@ def imu_packet(angle, angular_velocity):
 
 def generate_fixture():
     # Reuse the existing deterministic generator in memory; never rewrite mocks.
-    data = session("balanced")
+    data = to_raw_session(session("balanced"))
     data["session_id"] = "mock_balanced_raw_001"
+    assert len(data["samples"]) == 600
+    return data
+
+
+def to_raw_session(source):
+    """TEST ONLY: ideal IMU emulation, retaining baseline context and insole faults.
+
+    This synthetic round-trip is not recovery of real raw measurements.
+    """
+    if source.get("synthetic") is not True:
+        raise ValueError("Ideal IMU emulation requires explicitly synthetic input")
+    data = copy.deepcopy(source)
     data["processing"] = {
         "stage": "raw_sensor_fixture", "synthetic": True,
         "imu_model": "ideal gravity specific force plus analytic angular velocity",
@@ -42,6 +54,8 @@ def generate_fixture():
                "ground_truth": {}}
         for side in ("left", "right"):
             motion = sample[side]["knee"]
+            if motion.get("quality", {}).get("valid") is not True:
+                raise ValueError("Cannot emulate valid IMUs from invalid knee motion")
             angle = motion["flexion_rad"]
             raw[side] = {
                 "imu": {"thigh": imu_packet(0.0, 0.0),
@@ -53,7 +67,6 @@ def generate_fixture():
                 raw["ground_truth"][f"{side}_knee_{key}"] = motion[key]
         raw_samples.append(raw)
     data["samples"] = raw_samples
-    assert len(raw_samples) == 600
     return data
 
 
@@ -82,19 +95,17 @@ def training_events():
 
 
 def training_motion(t, side, events):
-    """Existing 8-degree offset and Gaussian pulse shape, with programmed amplitudes."""
-    angle = math.radians(8)
-    velocity = acceleration = 0.0
-    sigma = 0.18
-    for event in events:
-        delta = t - (event["start_s"] + 0.25)
-        amplitude = math.radians(38 if side == "left" else 36) * event["programmed"][f"{side}_flexion_scale"]
-        pulse = amplitude * math.exp(-0.5 * (delta / sigma) ** 2)
-        angle += pulse
-        velocity += -delta / sigma**2 * pulse
-        acceleration += (delta**2 / sigma**4 - 1 / sigma**2) * pulse
-    return {"flexion_rad": angle, "angular_velocity_rad_s": velocity,
-            "angular_acceleration_rad_s2": acceleration}
+    """Use the shared Gaussian motion model with the programmed amplitudes."""
+    landings = [{
+        "start_s": event["start_s"], "flexion_offset_s": {"left": 0.25, "right": 0.25},
+        "flexion_sigma_s": 0.18,
+        "flexion_amplitude_rad": {
+            segment_side: math.radians(38 if segment_side == "left" else 36)
+            * event["programmed"][f"{segment_side}_flexion_scale"]
+            for segment_side in ("left", "right")
+        },
+    } for event in events]
+    return {key: value for key, value in knee(t, side, landings).items() if key != "quality"}
 
 
 def generate_training_fixture():
@@ -218,18 +229,22 @@ def validate_training_output(processed_path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--scenario", choices=("balanced", "training_20_landings"),
+                        default="training_20_landings", help="Fixture to generate; existing training default retained")
     parser.add_argument("--validate-processed", type=Path, help="Validate the generated training fixture after processing")
     args = parser.parse_args()
     if args.validate_processed:
         validate_training_output(args.validate_processed)
         return
-    data = generate_training_fixture()
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n")
-    assert len(json.loads(OUTPUT.read_text())["samples"]) == 4100
+    data = generate_fixture() if args.scenario == "balanced" else generate_training_fixture()
+    output = OUTPUT.with_name("mock_balanced_raw.json") if args.scenario == "balanced" else OUTPUT
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n")
+    assert len(json.loads(output.read_text())["samples"]) == len(data["samples"])
     print("Synthetic ideal raw sensor fixture — not hardware validation.")
-    print(f"Generated {len(data['samples'])} samples at {data['sampling']['rate_hz']} Hz; 20 landings, 41 seconds")
-    print(f"Saved {OUTPUT}")
+    print(f"Generated {len(data['samples'])} samples at {data['sampling']['rate_hz']} Hz; "
+          f"{len(data['annotations'])} landings, {data['sampling']['duration_s']} seconds")
+    print(f"Saved {output}")
 
 
 if __name__ == "__main__":

@@ -175,8 +175,8 @@ export default function HomeScreen() {
                 </Row>
                 <JointRangeScale
                   value={rom(joint, today[0])}
-                  low={reference(joint, today[0].activity).low}
-                  high={reference(joint, today[0].activity).high}
+                  low={reference(joint, today[0].activity)?.low ?? null}
+                  high={reference(joint, today[0].activity)?.high ?? null}
                   ready={joint.baselineReady}
                 />
               </Pressable>
@@ -188,11 +188,11 @@ export default function HomeScreen() {
             A closer look
           </Text>
           <Text type="subtitle">
-            Your knee’s range is within its usual running pattern.
+            Explore your learned landing reference.
           </Text>
           <Text type="small" themeColor="textSecondary">
-            Today’s 92° sits within the illustrative 86–94° personal reference.
-            Based on the right knee’s running recording, with 96% coverage.
+            Compare separate landing sessions against your synthetic history.
+            Today’s running range stays separate; it has no learned activity reference.
           </Text>
           <Action href="/trends">Explore your trends →</Action>
         </Panel>

@@ -139,6 +139,7 @@
       "end_s": 5.6
     }
   ],
+  "scenario": "balanced",
   "processing": {
     "stage": "post_sensor_processing",
     "orientation_filter": "Madgwick 6-DOF",

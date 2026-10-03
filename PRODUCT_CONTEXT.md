@@ -6,7 +6,7 @@
 
 **Product name:** Kintra. The wearable platform and companion app share this name.
 
-**Current stage:** Designathon concept with a working mobile UI prototype using synthetic data. Hardware and sensing algorithms are not implemented or validated. See [the app handoff](rn-app/HANDOFF.md) for implementation and design decisions.
+**Current stage:** Designathon concept with a working mobile UI, synthetic personal-baseline learner, and ideal raw-IMU/Madgwick software experiment. Hardware and real-sensor accuracy are not validated. See [pipeline integration](docs/pipeline-integration.md) and [the app handoff](rn-app/HANDOFF.md) for implementation boundaries and design decisions.
 
 ## 1. The idea in two sentences
 

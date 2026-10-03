@@ -109,15 +109,16 @@ export function JointRangeScale({
   ready,
 }: {
   value: number;
-  low: number;
-  high: number;
+  low: number | null;
+  high: number | null;
   ready: boolean;
 }) {
-  const maximum = Math.ceil((Math.max(value, high) + 10) / 20) * 20;
+  const hasReference = ready && low !== null && high !== null;
+  const maximum = Math.ceil((Math.max(value, high ?? value) + 10) / 20) * 20;
   return (
     <View
       accessible
-      accessibilityLabel={`Movement range ${value} degrees. ${ready ? `Personal reference ${low} to ${high} degrees.` : 'Personal baseline developing.'} Scale 0 to ${maximum} degrees.`}
+      accessibilityLabel={`Movement range ${value} degrees. ${hasReference ? `Personal reference ${low} to ${high} degrees.` : 'No reference for this activity.'} Scale 0 to ${maximum} degrees.`}
       style={{ gap: s.two }}>
       <View style={{ height: 16, justifyContent: 'center' }}>
         <View
@@ -127,7 +128,7 @@ export function JointRangeScale({
             backgroundColor: c.backgroundSelected,
           }}
         />
-        {ready && (
+        {hasReference && (
           <View
             style={{
               position: 'absolute',
@@ -164,8 +165,8 @@ export function JointRangeScale({
         </Text>
         <Text
           type="small"
-          style={{ color: ready ? c.comparison : c.textSecondary }}>
-          {ready ? `Reference ${low}–${high}°` : 'Baseline developing'}
+          style={{ color: hasReference ? c.comparison : c.textSecondary }}>
+          {hasReference ? `Reference ${low}–${high}°` : 'No activity reference'}
         </Text>
         <Text type="small" themeColor="textSecondary">
           {maximum}°
