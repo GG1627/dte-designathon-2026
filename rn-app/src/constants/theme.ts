@@ -16,11 +16,15 @@ export const Colors = {
     textSecondary: '#60646C',
   },
   dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    text: '#F4F2ED',
+    background: '#111214',
+    backgroundElement: '#1D2023',
+    backgroundSelected: '#292C30',
+    textSecondary: '#A6ADB5',
+    accent: '#FF5A36',
+    accentMuted: '#452921',
+    border: '#343334',
+    warning: '#E3C892',
   },
 } as const;
 
@@ -63,3 +67,17 @@ export const Spacing = {
 
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
+
+// The prototype uses one deliberate dark palette across native and web.
+export const Palette = Colors.dark;
+export const Radius = { small: 8, medium: 16, large: 24 } as const;
+
+export const KintraBrand = {
+  background: '#111214',
+  surface: '#1D2023',
+  accent: '#FF5A36',
+  text: '#F4F2ED',
+  muted: '#A6ADB5',
+  line: '#343334',
+  accentSoft: '#452921',
+} as const;

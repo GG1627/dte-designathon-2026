@@ -1,18 +1,51 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, ThemeProvider } from 'expo-router/react-navigation';
+import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { DemoProvider } from '@/components/demo-provider';
+import { Palette as c } from '@/constants/theme';
 
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
+export const unstable_settings = { initialRouteName: 'index' };
+const theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: c.accent,
+    background: c.background,
+    card: c.background,
+    text: c.text,
+    border: c.border,
+  },
+};
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <ThemeProvider value={theme}>
+      <DemoProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: c.background },
+            headerTintColor: c.accent,
+            headerTitleStyle: { color: c.text },
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: c.background },
+          }}>
+          <Stack.Screen name="index" options={{ headerShown: false, title: 'Kintra' }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="joint/[id]" options={{ title: 'Joint detail' }} />
+          <Stack.Screen
+            name="session/[id]"
+            options={{ title: 'Session summary' }}
+          />
+        </Stack>
+      </DemoProvider>
     </ThemeProvider>
   );
 }
