@@ -375,22 +375,24 @@ export function SessionRow({ session }: { session: Session }) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${session.activity}, ${session.minutes} minutes, ${formatDate(session.date)}. View session`}
-        style={({ pressed }) => ({
+        style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: s.three,
+          gap: 12,
           minHeight: 80,
-          paddingVertical: s.three,
-          borderBottomWidth: 1,
-          borderBottomColor: c.border,
-          opacity: pressed ? 0.65 : 1,
-        })}>
+          padding: s.three,
+          backgroundColor: c.backgroundElement,
+          borderRadius: Radius.medium,
+          borderWidth: 1,
+          borderColor: c.border,
+        }}>
         <View
           style={{
-            width: 48,
-            height: 48,
+            width: 40,
+            height: 40,
+            flexShrink: 0,
             borderRadius: Radius.medium,
-            backgroundColor: c.backgroundElement,
+            backgroundColor: c.accentMuted,
             alignItems: 'center',
             justifyContent: 'center',
           }}>
@@ -409,14 +411,14 @@ export function SessionRow({ session }: { session: Session }) {
             }}
           />
         </View>
-        <View style={{ flex: 1, gap: s.one }}>
+        <View style={{ flex: 1, minWidth: 0, gap: s.one }}>
           <Text type="smallBold">{session.activity}</Text>
           <Text type="small" themeColor="textSecondary">
             {session.offset === 0 ? 'Today' : formatDate(session.date)} ·{' '}
             {session.coverage}% coverage
           </Text>
         </View>
-        <Text type="smallBold">{session.minutes} min</Text>
+        <Text type="smallBold" style={{ flexShrink: 0, fontVariant: ['tabular-nums'] }}>{session.minutes} min</Text>
         <Icon
           name={{
             ios: 'chevron.right',
