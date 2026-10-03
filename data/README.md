@@ -82,3 +82,17 @@ for noisy signals, timing errors, and calibration failures.
 
 Real sensor recordings should use a separate directory and the same consumer
 interface once adapters exist. Keep identifiable participant data out of Git.
+
+## Personal-baseline demonstration
+
+Run `python3 -B scripts/run_baseline_demo.py` from the repository root (`python` on
+Windows). It generates five separate reference sessions with six landings each,
+extracts quality-aware annotated-window metrics, learns session-median/MAD
+baselines, and evaluates the three unchanged fixtures above. It also tests three
+participant patterns, seven additional quality challenges, and histories of
+3/5/10/20 sessions. Inspect generated JSON in `data/baseline_demo/`; reruns replace
+only the demo's named outputs and its tracked result snapshot at
+`rn-app/src/data/baseline-results.json`. The app displays these frozen landing
+results separately from running/walking demo history; it does not learn live.
+See [the baseline demo documentation](../docs/baseline-demo.md) for schema
+extensions, statistical/quality rules, limitations, and focused tests.

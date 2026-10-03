@@ -1,4 +1,5 @@
 // Synthetic observations for the designathon. These are not sensor readings.
+import { landingReferenceReady } from './learned-baselines';
 export const demoDate = '2026-10-03';
 export type Activity = 'Running' | 'Walking';
 export type Joint = {
@@ -23,7 +24,7 @@ export const joints: Joint[] = [
     name: 'Right knee',
     anatomy: 'Knee',
     monitored: true,
-    baselineReady: true,
+    baselineReady: landingReferenceReady('right'),
     devices: ['pod-01', 'pod-02'],
     placement: [
       'Secure the thigh and lower-leg attachments.',
@@ -136,16 +137,12 @@ export function rom(joint: Joint, session: Session) {
   return joint.anatomy === 'Knee' ? session.kneeRom : session.ankleRom;
 }
 
-export function reference(joint: Joint, activity: Activity) {
-  const median =
-    joint.anatomy === 'Knee'
-      ? activity === 'Running'
-        ? 90
-        : 60
-      : activity === 'Running'
-        ? 30
-        : 26;
-  return { median, low: median - 4, high: median + 4 };
+export function reference(_joint: Joint, _activity: Activity): {
+  median: number; low: number; high: number;
+} | null {
+  // The Python learner currently supports bilateral landings only.
+  // Never apply its reference to these separate running/walking UI fixtures.
+  return null;
 }
 
 export function average(values: number[]) {

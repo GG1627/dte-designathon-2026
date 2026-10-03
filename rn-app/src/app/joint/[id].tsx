@@ -2,6 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import { useState } from 'react';
 import { isOnline, useDemo } from '@/components/demo-provider';
+import { LandingBaseline } from '@/components/landing-baseline';
 import {
   Action,
   Badge,
@@ -85,25 +86,25 @@ export default function JointDetailScreen() {
                 />
               </Row>
             </Panel>
-            <Section title="Personal baseline">
+            {joint.anatomy === 'Knee' ? <LandingBaseline initialSide={joint.id.startsWith('left') ? 'left' : 'right'} /> : <Section title="Personal baseline">
               <Panel>
-                <Badge muted={!joint.baselineReady}>
-                  {joint.baselineReady
+                <Badge muted={baseline === null}>
+                  {baseline !== null
                     ? 'Reference available'
                     : 'Still learning'}
                 </Badge>
                 <Text type="subtitle">
-                  {joint.baselineReady
+                  {baseline !== null
                     ? `${baseline.low}–${baseline.high}°`
                     : 'Building a comparable history'}
                 </Text>
                 <Text themeColor="textSecondary">
-                  {joint.baselineReady
+                  {baseline !== null
                     ? `Illustrative historical movement range for ${latest.activity.toLowerCase()}, with the same joint and pod placement. A usual pattern is a reference, not proof of ideal mechanics.`
-                    : 'Only a limited history is available for this ankle. Keep activity and attachment conditions consistent so future comparisons are meaningful.'}
+                    : 'No learned reference is available for this joint and activity. Keep activity and attachment conditions consistent.'}
                 </Text>
               </Panel>
-            </Section>
+            </Section>}
             <Section title="Functional assessments">
               {joint.anatomy === 'Knee' ? (
                 <Panel>

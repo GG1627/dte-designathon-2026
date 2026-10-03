@@ -10,6 +10,34 @@ MASS_KG = 75
 BW_N = MASS_KG * 9.80665
 CONTACT_THRESHOLD_N = 20
 SCHEMA_VERSION = "0.1.0"
+PRESSURE_FORCE_REL_TOL = 1e-12
+PRESSURE_FORCE_ABS_TOL_N = 1e-10
+
+
+def default_landings():
+    """Waveform parameters; defaults preserve the original regression fixtures."""
+    return [{"start_s": start, "end_s": start + 0.6,
+             "flexion_offset_s": {side: 0.25 for side in ("left", "right")},
+             "flexion_sigma_s": 0.18,
+             "flexion_amplitude_rad": {"left": math.radians(38), "right": math.radians(36)},
+             "force_scale": {side: 1.0 for side in ("left", "right")}}
+            for start in (1.0, 3.0, 5.0)]
+
+
+def reconstructed_force(pressures, cells):
+    """Sum full calibrated pressure coverage; reject missing/nonphysical inputs."""
+    if not cells or not isinstance(pressures, list) or len(pressures) != len(cells):
+        raise ValueError("incomplete_pressure_coverage")
+    forces = []
+    for pressure, cell in zip(pressures, cells):
+        area = cell.get("area_m2")
+        if (not isinstance(pressure, (int, float)) or isinstance(pressure, bool)
+                or not math.isfinite(pressure) or pressure < 0
+                or not isinstance(area, (int, float)) or isinstance(area, bool)
+                or not math.isfinite(area) or area <= 0):
+            raise ValueError("invalid_pressure_or_area")
+        forces.append(pressure * area)
+    return sum(forces)
 
 
 def geometry(side):
@@ -26,14 +54,14 @@ def geometry(side):
     return cells
 
 
-def knee(t, side):
+def knee(t, side, landings=None):
     # Smooth flexion response to three labelled bilateral landings.
     angle = math.radians(8)
     velocity = acceleration = 0.0
-    for start in (1.0, 3.0, 5.0):
-        delta = t - (start + 0.25)
-        sigma = 0.18
-        amplitude = math.radians(38 if side == "left" else 36)
+    for landing in default_landings() if landings is None else landings:
+        delta = t - (landing["start_s"] + landing["flexion_offset_s"][side])
+        sigma = landing["flexion_sigma_s"]
+        amplitude = landing["flexion_amplitude_rad"][side]
         pulse = amplitude * math.exp(-0.5 * (delta / sigma) ** 2)
         angle += pulse
         velocity += -delta / sigma**2 * pulse
@@ -46,7 +74,7 @@ def knee(t, side):
     }
 
 
-def insole(t, side, cells, scale, missing):
+def insole(t, side, cells, scale, missing, landings=None):
     if missing:
         return {
             "plantar_normal_force_n": None,
@@ -55,9 +83,13 @@ def insole(t, side, cells, scale, missing):
             "quality": {"valid": False, "reasons": ["sensor_dropout"]},
         }
     phase = None
-    for start in (1.0, 3.0, 5.0):
-        if start <= t <= start + 0.6:
-            phase = (t - start) / 0.6
+    for landing in default_landings() if landings is None else landings:
+        start, end = landing["start_s"], landing["end_s"]
+        if start <= t <= end:
+            # Keep the original 0.6 divisor for the default fixtures.
+            duration = 0.6 if landings is None else end - start
+            phase = (t - start) / duration
+            scale *= landing["force_scale"][side]
             break
     force = 0.0 if phase is None else 1.7 * BW_N * scale * math.sin(math.pi * phase) ** 2
     # Illustrative six-cell map: load moves from heel toward forefoot.
@@ -83,18 +115,18 @@ def insole(t, side, cells, scale, missing):
     }
 
 
-def session(scenario):
+def session(scenario, landings=None, duration_s=DURATION_S):
     cells = {side: geometry(side) for side in ("left", "right")}
     samples = []
-    for sequence in range(RATE_HZ * DURATION_S):
+    for sequence in range(round(RATE_HZ * duration_s)):
         t = sequence / RATE_HZ
         sample = {"sequence": sequence, "timestamp_s": t}
         for side in ("left", "right"):
             scale = 1.1 if scenario == "right_load_bias" and side == "right" else 1.0
             missing = scenario == "sensor_dropout" and side == "left" and 3.1 <= t < 3.25
             sample[side] = {
-                "knee": knee(t, side),
-                "insole": insole(t, side, cells[side], scale, missing),
+                "knee": knee(t, side, landings),
+                "insole": insole(t, side, cells[side], scale, missing, landings),
             }
         samples.append(sample)
     return {
@@ -104,7 +136,7 @@ def session(scenario):
         "activity": "bilateral_landing",
         "scenario": scenario,
         "participant": {"id": "synthetic_athlete", "mass_kg": MASS_KG},
-        "sampling": {"rate_hz": RATE_HZ, "duration_s": DURATION_S,
+        "sampling": {"rate_hz": RATE_HZ, "duration_s": duration_s,
                      "clock": "session_monotonic", "synchronization_uncertainty_s": 0.0},
         "processing": {
             "stage": "post_sensor_extraction",
@@ -122,21 +154,22 @@ def session(scenario):
         "insole_geometry": cells,
         "annotations": [
             {"event_id": f"landing_{i + 1}", "type": "synthetic_landing_window",
-             "start_s": start, "end_s": start + 0.6}
-            for i, start in enumerate((1.0, 3.0, 5.0))
+             "start_s": landing["start_s"], "end_s": landing["end_s"]}
+            for i, landing in enumerate(default_landings() if landings is None else landings)
         ],
         "samples": samples,
     }
 
 
-def verify(data):
-    """Check fixture integrity before saving; these are not hardware validations."""
+def verify_measurements(data):
+    """Shared synthetic integrity checks, independent of scenario or event count."""
     assert data["synthetic"]
-    assert len(data["samples"]) == RATE_HZ * DURATION_S
+    rate = data["sampling"]["rate_hz"]
+    assert len(data["samples"]) == round(rate * data["sampling"]["duration_s"])
     missing_count = 0
     for index, sample in enumerate(data["samples"]):
         assert sample["sequence"] == index
-        assert sample["timestamp_s"] == index / RATE_HZ
+        assert sample["timestamp_s"] == index / rate
         for side in ("left", "right"):
             motion = sample[side]["knee"]
             assert all(math.isfinite(motion[key]) for key in (
@@ -154,7 +187,8 @@ def verify(data):
             assert force >= 0
             cell_forces = [pressure * cell["area_m2"]
                            for pressure, cell in zip(foot["cell_pressures_pa"], cells)]
-            assert math.isclose(sum(cell_forces), force, rel_tol=1e-12, abs_tol=1e-10)
+            assert math.isclose(reconstructed_force(foot["cell_pressures_pa"], cells), force,
+                                rel_tol=PRESSURE_FORCE_REL_TOL, abs_tol=PRESSURE_FORCE_ABS_TOL_N)
             if force > CONTACT_THRESHOLD_N:
                 assert math.isclose(foot["medial_fraction"] + foot["lateral_fraction"], 1)
                 for axis in ("x_m", "y_m"):
@@ -162,6 +196,12 @@ def verify(data):
                     assert math.isclose(foot["cop_m"][axis], expected, abs_tol=1e-12)
             else:
                 assert foot["cop_m"] is None
+    return missing_count
+
+
+def verify(data):
+    """Original scenario regression checks; no hardware validation implied."""
+    missing_count = verify_measurements(data)
     assert missing_count == (15 if data["scenario"] == "sensor_dropout" else 0)
     for sample in data["samples"]:
         left = sample["left"]["insole"]["plantar_normal_force_n"]

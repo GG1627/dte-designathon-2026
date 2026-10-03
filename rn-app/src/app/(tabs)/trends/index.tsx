@@ -12,6 +12,7 @@ import {
   SessionRow,
 } from '@/components/monitoring-ui';
 import { RangeChart } from '@/components/range-chart';
+import { LandingBaseline } from '@/components/landing-baseline';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
 import {
@@ -40,6 +41,7 @@ export default function TrendsScreen() {
     0,
   );
   const baseline = reference(joint, activity);
+  const hasReference = joint.baselineReady && baseline !== null;
   const excluded = jointSessions(joint).filter(
     (session) =>
       session.offset < days &&
@@ -52,6 +54,8 @@ export default function TrendsScreen() {
         title="See your patterns."
         description="Your movement, understood over time."
       />
+      <LandingBaseline />
+      <Text type="subtitle">Running & walking history</Text>
       <Row wrap>
         <View style={{ flexGrow: 1, gap: s.two }}>
           <FilterControl label="Joint">
@@ -121,17 +125,17 @@ export default function TrendsScreen() {
                 Movement pattern
               </Text>
               <Text type="subtitle">
-                {joint.baselineReady
+                {hasReference
                   ? currentRange! >= baseline.low &&
                     currentRange! <= baseline.high
                     ? 'Your range stayed close to your reference.'
                     : 'Your range differs from your reference.'
-                  : 'Your personal baseline is still developing.'}
+                  : 'No learned reference for this activity yet.'}
               </Text>
               <Text type="small" themeColor="textSecondary">
-                {joint.baselineReady
+                {hasReference
                   ? `${Math.round(currentRange!)}° average across ${records.length} comparable recordings. Your illustrative reference is ${baseline.low}–${baseline.high}° for ${activity.toLowerCase()} with the same placement.`
-                  : `${records.length} comparable recordings in this period. More valid observations under the same conditions are needed before interpreting changes.`}
+                  : `${records.length} comparable demo recordings. Landing reference values are not used for ${activity.toLowerCase()}.`}
               </Text>
               {previousRange !== null ? (
                 <Text type="small">

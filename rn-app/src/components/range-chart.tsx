@@ -28,7 +28,8 @@ export function RangeChart({
   const values = ordered.map((session) => rom(joint, session));
   const mean = average(values);
   const baseline = reference(joint, activity);
-  const max = Math.ceil(Math.max(...values, baseline.high) / 20) * 20 + 20;
+  const hasReference = joint.baselineReady && baseline !== null;
+  const max = Math.ceil(Math.max(...values, baseline?.high ?? 0) / 20) * 20 + 20;
   const height = 160;
   if (mean === null)
     return (
@@ -66,7 +67,7 @@ export function RangeChart({
       </Row>
       <View
         accessible
-        accessibilityLabel={`${joint.name}, ${activity}. Average movement range ${Math.round(mean)} degrees over ${records.length} comparable recordings.${joint.baselineReady ? ` Personal reference ${baseline.low} to ${baseline.high} degrees.` : ' Personal baseline is developing.'}`}
+        accessibilityLabel={`${joint.name}, ${activity}. Average movement range ${Math.round(mean)} degrees over ${records.length} comparable recordings.${hasReference ? ` Personal reference ${baseline.low} to ${baseline.high} degrees.` : ' No learned reference for this activity.'}`}
         style={{ flexDirection: 'row', gap: s.two }}>
         <View style={{ height, justifyContent: 'space-between', width: 32 }}>
           <Text type="small" themeColor="textSecondary">
@@ -99,7 +100,7 @@ export function RangeChart({
               }}
             />
           ))}
-          {joint.baselineReady ? (
+          {hasReference ? (
             <View
               style={{
                 position: 'absolute',
@@ -149,11 +150,11 @@ export function RangeChart({
         <Text type="small" themeColor="textSecondary">
           {records.length} comparable {activity.toLowerCase()} recordings
         </Text>
-        {joint.baselineReady ? (
+        {hasReference ? (
           <Badge
             comparison>{`Reference ${baseline.low}–${baseline.high}°`}</Badge>
         ) : (
-          <Badge muted>Baseline developing</Badge>
+          <Badge muted>No activity reference</Badge>
         )}
       </Row>
       <Sheet
@@ -163,8 +164,8 @@ export function RangeChart({
         <Badge muted>Demo · derived from joint angle</Badge>
         <Text type="small" themeColor="textSecondary">
           {joint.name} · {activity}. Only recordings with at least 80% valid
-          coverage are included in this demo comparison. The reference is an
-          illustrative historical range for the same setup.
+          coverage are included. No learned running/walking reference is available;
+          landing references are kept separate.
         </Text>
         {ordered.map((session) => (
           <Row key={session.id}>
