@@ -1,3 +1,5 @@
+import { useSetup } from '@/components/setup-provider';
+import { PersonalReference } from '@/components/setup-ui';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -8,6 +10,7 @@ import { Palette as c, Spacing as s } from '@/constants/theme';
 import { demoDate, formatDate, joints, rom, sessions } from '@/data/demo';
 
 export default function HomeScreen() {
+  const { setup } = useSetup();
   const [devicesOpen, setDevicesOpen] = useState(false);
   const { online } = useDemo();
   const today = sessions.filter((session) => session.offset === 0);
@@ -18,6 +21,12 @@ export default function HomeScreen() {
   return <>
     <Screen>
       <PageIntro title="Today" description={formatDate(demoDate, true)} />
+      <Panel accent>
+        <Text type="subtitle">{setup.setup_status === 'complete' ? 'Kintra is ready' : setup.setup_status === 'in_progress' ? 'Setup incomplete' : 'Get ready to move'}</Text>
+        <Text type="small" themeColor="textSecondary">{setup.setup_status === 'complete' ? 'Sensor fit and movement checks complete in this demo.' : 'Help Kintra learn how your sensors are positioned and how you move.'}</Text>
+        <Action primary href="/setup">{setup.setup_status === 'complete' ? 'Review Kintra setup' : setup.setup_status === 'in_progress' ? 'Resume Kintra setup' : 'Set up Kintra'}</Action>
+      </Panel>
+      {setup.setup_status === 'complete' ? <PersonalReference setup={setup} /> : null}
       <Section title="Your joints" action={<Action onPress={() => setDevicesOpen(true)}>Devices</Action>}>
         <Text type="small" themeColor="textSecondary">{latest ? `Movement range · today’s ${latest.activity.toLowerCase()}` : 'No recordings today'}</Text>
         <Panel>
