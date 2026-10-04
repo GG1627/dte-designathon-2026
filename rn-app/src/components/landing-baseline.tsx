@@ -1,35 +1,18 @@
-import { Host, Picker } from '@expo/ui';
-import { createElement, useState } from 'react';
-import { Platform, View } from 'react-native';
-import { Action, Badge, Divider, Panel, Row, Section, Sheet } from '@/components/monitoring-ui';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { ActivityContextDemo } from '@/components/activity-context-demo';
+import { SelectionControl as Choice } from '@/components/selection-control';
+import { Action, Badge, Divider, Panel, Row, Section, Sheet } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
 import { formatMetric, learnedBaselines, metricLabels, type MetricName, type Side } from '@/data/learned-baselines';
 
-function Choice({ label, value, options, onChange }: {
-  label: string; value: string; options: { value: string; label: string }[];
-  onChange: (value: string) => void;
+export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
+  initialSide?: Side; mode?: 'lab' | 'summary';
 }) {
-  const content = <>
-    <Text type="label" themeColor="textSecondary">{label}</Text>
-    <Host colorScheme="dark" seedColor={c.accent} matchContents style={{ minHeight: 48 }}>
-      <Picker selectedValue={value} onValueChange={onChange}>
-        {options.map((option) => <Picker.Item key={option.value} {...option} />)}
-      </Picker>
-    </Host>
-  </>;
-  return <View style={{ flexGrow: 1, flexBasis: 120, gap: s.two }}>
-    {Platform.OS === 'web'
-      ? createElement('label', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, content)
-      : content}
-  </View>;
-}
-
-export function LandingBaseline({ initialSide = 'right' }: { initialSide?: Side }) {
   const [participantId, setParticipantId] = useState(learnedBaselines.participants[0].profile.id);
   const [side, setSide] = useState<string>(initialSide);
-  const [scenario, setScenario] = useState('reference_right_loading');
+  const [scenario, setScenario] = useState(mode === 'summary' ? 'balanced' : 'reference_right_loading');
   const [historyCount, setHistoryCount] = useState('5');
   const [details, setDetails] = useState<MetricName | null>(null);
   const participant = learnedBaselines.participants.find((p) => p.profile.id === participantId);
@@ -45,15 +28,29 @@ export function LandingBaseline({ initialSide = 'right' }: { initialSide?: Side 
   const selectedMetric = snapshot.metrics.find((m) => m.side === side && m.metric === details);
   const selectedComparison = evaluation.comparisons.find((m) => m.side === side && m.metric === details);
   const selectedSummary = evaluation.session_metrics.find((m) => m.side === side && m.metric === details);
+  const compact = mode === 'summary';
+  const insightPanel = <Panel>
+    <Text type="smallBold">{insight?.title ?? 'Insight unavailable'}</Text>
+    <Text type="small">{insight?.summary ?? 'Comparable usable metrics are needed before describing a change.'}</Text>
+    {insight ? <>
+      <Divider />
+      <Text type="smallBold">Why am I seeing this?</Text>
+      {insight.evidence.map((item) => <Text key={`${item.side}-${item.metric}`} type="small" themeColor="textSecondary">
+        {item.side === 'right' ? 'Right' : 'Left'} · {metricLabels[item.metric as MetricName] ?? item.metric}: {formatMetric(item.current, item.metric)} vs {formatMetric(item.reference, item.metric)}
+        {item.percent_difference !== null ? ` (${item.percent_difference >= 0 ? '+' : ''}${item.percent_difference.toFixed(1)}%)` : ''}
+      </Text>)}
+    </> : null}
+  </Panel>;
   return <>
-    <ActivityContextDemo side={side as Side} />
-    <Section title="Personal reference">
-    <Panel>
+    {!compact ? <ActivityContextDemo side={side as Side} /> : null}
+    <Section title={compact ? 'Landing comparison' : 'Personal reference'}>
+    {compact ? <Text type="small" themeColor="textSecondary">
+      {side === 'right' ? 'Right' : 'Left'} knee · balanced landing session · {ready ? 'provisional reference' : 'insufficient reference'}
+    </Text> : <Panel>
       <Row wrap><Badge comparison>Synthetic demonstration</Badge>
         <Badge muted={!ready}>{ready ? 'Provisional' : 'Insufficient reference'}</Badge></Row>
-      <Text type="smallBold">{side === 'right' ? 'Right' : 'Left'} knee — bilateral landing</Text>
+      <Text type="smallBold">{side === 'right' ? 'Right' : 'Left'} knee · bilateral landing</Text>
       <Text type="small">Based on {first?.eligible_session_count ?? 0} comparable sessions · {first?.contributing_event_count ?? 0} valid landing events for knee ROM.</Text>
-      <Text type="small" themeColor="textSecondary">Kintra compares this session with your own previous sessions performed under a matching activity and sensor configuration.</Text>
       <Text type="small" themeColor="textSecondary">Provisional reference — measurement reliability has not yet been established with physical hardware. Session minimums are demonstration rules.</Text>
       <Text type="small" themeColor="textSecondary">Separate task-history explorer: manually selected bilateral landings · knee. Synthetic histories; no live devices.</Text>
       <Row wrap>
@@ -68,24 +65,34 @@ export function LandingBaseline({ initialSide = 'right' }: { initialSide?: Side 
       <Choice label="Reference history" value={historyCount} onChange={setHistoryCount}
         options={participant.snapshots.map((item) => ({ value: String(item.reference_session_count), label: `${item.reference_session_count} sessions` }))} />
       <Text type="small" themeColor="textSecondary">{learnedBaselines.scenarios.find((item) => item.id === scenario)?.description}</Text>
-    </Panel>
+    </Panel>}
     {(Object.keys(metricLabels) as MetricName[]).map((name) => {
       const reference = snapshot.metrics.find((m) => m.side === side && m.metric === name);
       const comparison = evaluation.comparisons.find((m) => m.side === side && m.metric === name);
       const summary = evaluation.session_metrics.find((m) => m.side === side && m.metric === name);
       if (!reference || !comparison || !summary) return null;
       const difference = comparison.signed_difference;
+      if (compact && name !== 'knee_rom_rad') return <View key={name} style={{ gap: s.two }}>
+        <Divider />
+        <Row wrap>
+          <View style={{ flex: 1, gap: s.one }}>
+            <Text type="small" themeColor="textSecondary">{name === 'peak_plantar_normal_force_bw' ? 'Peak foot force' : 'Landing impulse'}</Text>
+            <Text type="smallBold">{formatMetric(comparison.evaluation_median, name)}</Text>
+          </View>
+          <Action onPress={() => setDetails(name)} label={`Compare ${metricLabels[name]}`}>Compare</Action>
+        </Row>
+      </View>;
       return <Panel key={name}>
         <Row wrap><Text type="smallBold">{metricLabels[name]}</Text>
-          <Action onPress={() => setDetails(name)} label={`View ${metricLabels[name]} history and quality`}>History & quality</Action></Row>
+          <Action onPress={() => setDetails(name)} label={`View ${metricLabels[name]} history and quality`}>{compact ? 'Details' : 'History & quality'}</Action></Row>
         <Row wrap>
-          <View style={{ gap: s.one }}><Text type="label" themeColor="textSecondary">Current</Text>
-            <Text type="subtitle" style={{ color: c.accent }}>{formatMetric(comparison.evaluation_median, name)}</Text></View>
-          <View style={{ gap: s.one }}><Text type="label" themeColor="textSecondary">Reference</Text>
-            <Text type="subtitle" style={{ color: c.comparison }}>{formatMetric(reference.median, name)}</Text></View>
+          <View style={{ gap: s.one }}><Text type="label" themeColor="textSecondary">This session</Text>
+            <Text type={compact ? 'metric' : 'subtitle'} style={{ color: c.accent }}>{formatMetric(comparison.evaluation_median, name)}</Text></View>
+          <View style={{ gap: s.one }}><Text type="label" themeColor="textSecondary">{compact ? 'Your reference' : 'Learned median'}</Text>
+            <Text type={compact ? 'smallBold' : 'subtitle'} style={{ color: c.comparison }}>{formatMetric(reference.median, name)}</Text></View>
         </Row>
         {difference !== null ? <Text type="small">
-          {difference >= 0 ? '+' : '−'}{formatMetric(Math.abs(difference), name)} change from reference
+          {difference >= 0 ? '+' : '−'}{formatMetric(Math.abs(difference), name)} from reference
           {comparison.percent_difference !== null ? ` (${comparison.percent_difference >= 0 ? '+' : ''}${comparison.percent_difference.toFixed(1)}%)` : ''}
         </Text> : <Text type="small" themeColor="textSecondary">
           {comparison.reasons.includes('activity_confirmation_required')
@@ -96,27 +103,25 @@ export function LandingBaseline({ initialSide = 'right' }: { initialSide?: Side 
               ? `${reference.eligible_session_count} comparable sessions; ${snapshot.rules.min_reference_sessions} needed for a reference.`
               : 'Comparison unavailable for this recording context.'}
         </Text>}
-        <Text type="small" themeColor="textSecondary">
+        {!compact ? <Text type="small" themeColor="textSecondary">
           {reference.contributing_event_count} reference landings · between-session median MAD {formatMetric(reference.mad, name)}
-        </Text>
+        </Text> : null}
       </Panel>;
     })}
-    <Panel>
-      <Text type="smallBold">{insight?.title ?? 'Insight unavailable'}</Text>
-      <Text type="small">{insight?.summary ?? 'Comparable usable metrics are needed before describing a change.'}</Text>
-      {insight && <>
-        <Divider />
-        <Text type="smallBold">Why am I seeing this?</Text>
-        {insight.evidence.map((item) => <Text key={`${item.side}-${item.metric}`} type="small" themeColor="textSecondary">
-          {item.side === 'right' ? 'Right' : 'Left'} · {metricLabels[item.metric as MetricName] ?? item.metric}: {formatMetric(item.current, item.metric)} vs {formatMetric(item.reference, item.metric)}
-          {item.percent_difference !== null ? ` (${item.percent_difference >= 0 ? '+' : ''}${item.percent_difference.toFixed(1)}%)` : ''}
-        </Text>)}
-      </>}
-    </Panel>
-    <Text type="small" themeColor="textSecondary">References stay frozen during comparison. Differences describe movement and plantar loading, not injury risk or readiness.</Text>
+    {!compact ? insightPanel : null}
+    {!compact ? <Text type="small" themeColor="textSecondary">References stay frozen during comparison. Differences describe movement and plantar loading, not injury risk or readiness.</Text> : null}
     <Sheet title={details ? `${metricLabels[details]} · reference` : 'Reference'} open={details !== null} onClose={() => setDetails(null)}>
       <Badge muted>Synthetic history</Badge>
+      <Row wrap><Text type="small">This session</Text><Text type="smallBold">{formatMetric(selectedComparison?.evaluation_median ?? null, details ?? '')}</Text></Row>
+      <Row wrap><Text type="small">Your reference</Text><Text type="smallBold" style={{ color: c.comparison }}>{formatMetric(selectedMetric?.median ?? null, details ?? '')}</Text></Row>
+      {selectedComparison?.signed_difference !== null && selectedComparison?.signed_difference !== undefined ? <Text type="small">
+        {selectedComparison.signed_difference >= 0 ? '+' : '−'}{formatMetric(Math.abs(selectedComparison.signed_difference), details ?? '')} from reference
+        {selectedComparison.percent_difference !== null ? ` (${selectedComparison.percent_difference >= 0 ? '+' : ''}${selectedComparison.percent_difference.toFixed(1)}%)` : ''}
+      </Text> : <Text type="small" themeColor="textSecondary">{selectedComparison?.reasons.join(', ').replaceAll('_', ' ')}</Text>}
+      {details && details !== 'knee_rom_rad' ? <Text type="small" themeColor="textSecondary">BW is body-weight units. These measurements describe plantar loading, not internal knee force.</Text> : null}
+      <Divider />
       <Text type="small">Each eligible session contributes one median, regardless of landing count. MAD describes differences between synthetic session medians, not biological variability or measurement error.</Text>
+      {compact ? insightPanel : null}
       <Text type="smallBold">As reference history grows</Text>
       {participant.snapshots.map((item) => {
         const metric = item.metrics.find((m) => m.side === side && m.metric === details);

@@ -178,10 +178,9 @@ references and evaluations consistently, writes separate outputs, and leaves
 the app snapshot intact. See [pipeline integration](pipeline-integration.md)
 for responsibilities, compatibility fixes and remaining sensor limitations.
 
-After running the Python command, start the existing app with `cd rn-app` then `npx expo start` (or `npx expo start --web --port 8085`). Trends and the monitored knee detail show the generated landing reference. Select participant, side, evaluation challenge, and history size; open **History & quality** for contributing session medians, stability, rejected events, and descriptive standardized differences.
+After running the Python command, start the existing app with `cd rn-app` then `npx expo start` (or `npx expo start --web --port 8085`). Select **Landings** in Trends or monitored knee detail for a compact comparison using Athlete A, balanced evaluation and five reference sessions. Open **Demo** in a main-screen header to reach **Demo Lab** (`/demo-lab`): participant, side, evaluation challenge and history-size controls live there and affect the Lab only. Open **History & quality** for contributing session medians, stability, rejected events and descriptive standardized differences.
 
 The app imports `src/data/baseline-results.json` through `learned-baselines.ts`; it displays Python results rather than implementing a second learner. Angles convert to degrees only for display. There is no live ingestion, persistent user history, or automatic background learning. Running/walking demo charts retain their sample data but show no learned activity reference, because a bilateral-landing baseline is incompatible with those activities. Regenerate the snapshot after changing learner rules or synthetic generation.
-
 
 ## Personal reference schema and athlete explanation
 

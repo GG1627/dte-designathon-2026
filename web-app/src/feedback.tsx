@@ -1,0 +1,36 @@
+import { useState } from 'react';
+import { buildBendFeedback, MIN_REFERENCE_SETS, type BendSet, type SetCheckIn } from './shared';
+import { Badge, Modal, RangeBars } from './ui';
+
+const titles = { takeaway: 'Why this feedback?', range: 'Movement range', pace: 'Rep pace', variation: 'Repeatability', reference: 'Personal reference', quality: 'Recording quality' };
+type Detail = keyof typeof titles;
+const show = (value: number | null, unit: string, precision = 0) => value === null ? '—' : `${value.toFixed(precision)}${unit}`;
+export function Feedback({ set, history, saved, error, onCheckIn, onSave, onNew }: {
+  set: BendSet; history: BendSet[]; saved: boolean; error: string | null;
+  onCheckIn: (checkIn: SetCheckIn) => void; onSave: () => void; onNew: () => void;
+}) {
+  const [detail, setDetail] = useState<Detail | null>(null);
+  const a = set.analysis, feedback = buildBendFeedback(set, history);
+  return <div className="stack"><div className="row"><h2>Your set</h2><Badge>Simulated feedback</Badge></div>
+    <section className="panel accent-panel"><button className="plain evidence" onClick={() => setDetail('takeaway')}><h2>{feedback.title}</h2><p className="muted">{feedback.observation}</p><span className="orange">See evidence ↗</span></button><hr/><span className="label">Next step</span><p>{feedback.nextStep}</p></section>
+    {a.status === 'ready' ? <div className="metrics">{([
+      ['range', 'Typical range', show(a.medianRangeDeg, '°')], ['pace', 'Typical rep', show(a.medianDurationS, ' s', 1)], ['variation', 'Range variation', show(a.rangeSpreadDeg, '°')],
+    ] as const).map(([key, label, value]) => <button className="panel evidence" key={key} onClick={() => setDetail(key)}><span className="muted">{label} ↗</span><strong className="metric-small">{value}</strong></button>)}</div> : null}
+    {a.reps.length ? <section className="panel"><h3>Movement range by rep</h3><RangeBars values={a.reps.map((r) => r.rangeDeg)}/><button onClick={() => setDetail('range')}>View each rep</button></section> : null}
+    <section className="panel"><h3>How was the set?</h3><p className="muted">Your experience adds context to the movement readings.</p><div className="form-grid">
+      <label>Exercise setup<select value={set.checkIn.setup} disabled={saved} onChange={(event) => onCheckIn({ ...set.checkIn, setup: event.target.value as SetCheckIn['setup'] })}><option value="unknown">Not confirmed</option><option value="planned">Followed the planned setup</option><option value="changed">Changed during this set</option></select></label>
+      <label>Effort · optional<select value={set.checkIn.effort} disabled={saved} onChange={(event) => onCheckIn({ ...set.checkIn, effort: event.target.value as SetCheckIn['effort'] })}><option value="unknown">Not recorded</option>{['easy', 'moderate', 'hard'].map((v) => <option value={v} key={v}>{v[0].toUpperCase() + v.slice(1)}</option>)}</select></label>
+    </div></section>
+    <button className="plain evidence" onClick={() => setDetail('reference')}><strong>{feedback.referenceRangeDeg === null ? 'Building comparable history' : 'Recent matching sets'} ↗</strong><span className="muted">{feedback.referenceRangeDeg === null ? a.reps.length < 3 ? 'Capture at least three complete bends for a set comparison.' : set.checkIn.setup !== 'planned' ? 'Confirm the planned setup to find matching sets.' : `${feedback.referenceCount} of ${MIN_REFERENCE_SETS} prior sets available for a demo comparison.` : `${feedback.referenceCount} prior sets · typical range ${feedback.referenceRangeDeg.toFixed(0)}°`}</span></button>
+    <div className="actions"><button onClick={() => setDetail('quality')}>Recording quality</button>{saved ? <Badge>Saved on this browser</Badge> : <button className="primary" onClick={onSave}>Save set</button>}<button onClick={onNew}>New set</button></div>{error ? <p role="alert" className="warning">{error}</p> : null}
+    {detail ? <Modal title={titles[detail]} onClose={() => setDetail(null)}><Badge>Simulated measurements</Badge>
+      {detail === 'takeaway' ? <><p>{feedback.observation}</p><p>This is a descriptive rule based on complete bends. It does not identify fatigue, injury, or the cause of a change.</p>{a.firstHalfRangeDeg !== null ? <p>First-half median: {show(a.firstHalfRangeDeg, '°', 1)}. Last-half median: {show(a.secondHalfRangeDeg, '°', 1)}.</p> : null}<p className="muted">First/last-half comparisons require four bends; an odd middle bend is excluded. Headline differences are rounded to whole degrees, without a validated significance threshold.</p>{set.goal.kind !== 'observe' ? <p>Your chosen target: {set.goal.target} {set.goal.kind === 'depth' ? 'degrees at the deepest bend' : 'seconds per rep'}.</p> : null}</> : null}
+      {detail === 'range' ? <p>Movement range is the deepest minus the straightest angle within each complete bend. Typical range is the median across bends; deepest bend and range are different measurements.</p> : null}
+      {detail === 'pace' ? <p>Rep duration runs from one return position to the next. It describes pace, not movement quality.</p> : null}
+      {detail === 'variation' ? <><p>Range variation is the widest minus the narrowest complete bend. It describes repeatability, not technique.</p><p>Range spread: {show(a.rangeSpreadDeg, '°', 1)}. Duration spread: {show(a.durationSpreadS, ' s', 2)}.</p></> : null}
+      {detail === 'reference' ? <><p>Only saved simulated sets with the same movement, chosen target, processing version, at least three complete bends, valid recording, and confirmed planned setup are compared.</p><p className="blue">Reference: median of session medians from up to five matching earlier sets. This set and later sets are excluded.</p><p>{feedback.referenceCount} matching sets. Range: {show(feedback.referenceRangeDeg, '°', 1)}. Pace: {show(feedback.referenceDurationS, ' s', 2)}.</p><p className="muted">Three prior sets is a prototype rule. History describes previous movement, not ideal technique. Measurement-error thresholds are not established.</p></> : null}
+      {detail === 'quality' ? <><p>Status: {a.status}. {a.sampleCount} samples; {a.invalidSamples} invalid; {a.interruptions} continuity breaks.</p><p>{a.reps.length} complete bends · {a.durationS.toFixed(1)} s complete-bend duration.</p>{a.reasons.map((r) => <p key={r}>{r}</p>)}<p className="muted">Idealized gravity and X-axis rotation. Observed returns, a 6° amplitude gate, and a 0.4 s minimum cycle are engineering gates, not exercise recommendations. Incomplete edges and bends across missing readings are excluded.</p><code>{a.version} · source: {a.source}</code></> : null}
+      {['range', 'pace', 'variation'].includes(detail) ? <div className="table-wrap"><table><thead><tr><th>Rep</th><th>Range</th><th>Duration</th><th>Min / peak</th><th>To peak</th><th>Peak speed</th><th>Peak acceleration</th></tr></thead><tbody>{a.reps.map((rep) => <tr key={rep.number}><td>{rep.number}</td><td>{rep.rangeDeg.toFixed(1)}°</td><td>{rep.durationS.toFixed(2)} s</td><td>{rep.minimumDeg.toFixed(1)}° / {rep.peakDeg.toFixed(1)}°</td><td>{rep.timeToPeakS.toFixed(2)} s</td><td>{rep.peakVelocityDegS.toFixed(1)} °/s</td><td>{rep.peakAccelerationDegS2.toFixed(1)} °/s²</td></tr>)}</tbody></table></div> : null}
+    </Modal> : null}
+  </div>;
+}

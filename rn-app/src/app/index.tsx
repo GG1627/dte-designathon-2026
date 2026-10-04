@@ -47,8 +47,8 @@ export default function WelcomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Get started"
-          accessibilityHint="Opens the Kintra home screen"
-          onPress={() => router.replace('/home')}
+          accessibilityHint="Opens the illustrated knee guide"
+          onPress={() => router.replace('/onboarding')}
           style={({ pressed }) => ({
             minHeight: 60,
             paddingHorizontal: s.four,

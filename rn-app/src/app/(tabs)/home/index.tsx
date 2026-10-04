@@ -1,222 +1,66 @@
+import { useSetup } from '@/components/setup-provider';
+import { HomeMovementFeedback } from '@/components/home-movement-feedback';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { isOnline, useDemo } from '@/components/demo-provider';
-import {
-  ActivityBar,
-  CoverageRing,
-  JointRangeScale,
-} from '@/components/home-visuals';
-import {
-  Action,
-  Badge,
-  PageIntro,
-  DeviceSheet,
-  Divider,
-  Icon,
-  Panel,
-  Row,
-  Screen,
-  Section,
-  SessionRow,
-  Sheet,
-} from '@/components/monitoring-ui';
+import { Action, DeviceSheet, Divider, Icon, PageIntro, Panel, Row, Screen, Section, SessionRow } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
-import {
-  demoDate,
-  formatDate,
-  joints,
-  reference,
-  rom,
-  sessions,
-} from '@/data/demo';
+import { demoDate, formatDate, joints, rom, sessions } from '@/data/demo';
 
 export default function HomeScreen() {
+  const { setup } = useSetup();
+  const ready = setup.setup_status === 'complete';
   const [devicesOpen, setDevicesOpen] = useState(false);
-  const [exposureOpen, setExposureOpen] = useState(false);
   const { online } = useDemo();
   const today = sessions.filter((session) => session.offset === 0);
+  const latest = today[0];
   const minutes = today.reduce((sum, session) => sum + session.minutes, 0);
-  const coverage = Math.round(
-    today.reduce(
-      (sum, session) => sum + session.minutes * session.coverage,
-      0,
-    ) / minutes,
-  );
   const tracked = joints.filter((joint) => joint.monitored);
-  const connected = tracked.filter((joint) => isOnline(joint, online)).length;
-  return (
-    <>
-      <Screen>
-        <PageIntro
-          title="Your movement today."
-          description={formatDate(demoDate, true)}
-        />
-        <Row wrap>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: s.two }}>
-            <Icon
-              name={{ ios: 'wave.3.right', android: 'sensors', web: 'sensors' }}
-            />
-            <Text type="small">
-              {connected} of {tracked.length} joint configurations online
-            </Text>
-          </View>
-          <Action onPress={() => setDevicesOpen(true)}>Devices</Action>
-        </Row>
-        <Panel accent>
-          <Row>
-            <Text type="label" style={{ color: c.accent }}>
-              Today’s activity exposure
-            </Text>
-            <Action
-              onPress={() => setExposureOpen(true)}
-              label="Explain activity exposure">
-              About
-            </Action>
-          </Row>
-          <Row wrap>
-            <View style={{ flexGrow: 1, flexBasis: 110, gap: s.one }}>
-              <Text type="metric" style={{ color: c.accent }}>
-                {minutes}
-                <Text type="small" themeColor="textSecondary">
-                  {' '}
-                  min
-                </Text>
-              </Text>
-              <Text type="smallBold">Recorded today</Text>
-              <Text type="small" themeColor="textSecondary">
-                {today.length} recordings today
-              </Text>
-            </View>
-            <CoverageRing value={coverage} />
-          </Row>
-          <Divider />
-          {(['Running', 'Walking'] as const).map((activity) => (
-            <ActivityBar
-              key={activity}
-              label={activity}
-              minutes={today
-                .filter((session) => session.activity === activity)
-                .reduce((sum, session) => sum + session.minutes, 0)}
-              total={minutes}
-            />
-          ))}
-          <Row wrap>
-            <Text type="small" themeColor="textSecondary">
-              Share of recorded time
-            </Text>
-            <Text type="small" style={{ color: c.accent }}>
-              Latest sync · 10:24
-            </Text>
-          </Row>
-        </Panel>
-        <Section
-          title="Your joints today"
-          action={<Action href="/joints">View all</Action>}>
-          <Text type="small" themeColor="textSecondary">
-            Movement from today’s running session
-          </Text>
-          {tracked.map((joint) => (
-            <Link
-              key={joint.id}
-              href={{ pathname: '/joint/[id]', params: { id: joint.id } }}
-              asChild>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`View ${joint.name}`}
-                style={{
-                  paddingVertical: 20,
-                  paddingHorizontal: 20,
-                  backgroundColor: c.backgroundElement,
-                  borderRadius: 24,
-                  borderWidth: 1,
-                  borderColor: c.border,
-                  gap: s.three,
-                }}>
-                <Row>
+  const disconnected = tracked.filter((joint) => !isOnline(joint, online));
+  return <>
+    <Screen>
+      <PageIntro title="Today" description={formatDate(demoDate, true)} />
+      {!ready && <Row wrap>
+        <Text type="small" themeColor="textSecondary">Start tracking your movement</Text>
+        <Action href="/setup">{setup.setup_status === 'in_progress' ? 'Resume setup' : 'Set up Kintra'}</Action>
+      </Row>}
+      {ready ? <>
+      <HomeMovementFeedback />
+      <Section title="Your joints" action={<Action onPress={() => setDevicesOpen(true)}>Devices</Action>}>
+        <Text type="small" themeColor="textSecondary">{latest ? `Movement range · today’s ${latest.activity.toLowerCase()}` : 'No recordings today'}</Text>
+        <Panel>
+          {tracked.map((joint, index) => <View key={joint.id} style={{ gap: s.three }}>
+            {index > 0 ? <Divider /> : null}
+            <Link href={{ pathname: '/joint/[id]', params: { id: joint.id } }} asChild>
+              <Pressable accessibilityRole="button" accessibilityLabel={`View ${joint.name}${latest ? `, movement range ${rom(joint, latest)} degrees` : ''}`}
+                style={{ minHeight: 80, flexDirection: 'row', alignItems: 'center', gap: s.three }}>
+                <View style={{ flex: 1, gap: s.one }}>
                   <Text type="smallBold">{joint.name}</Text>
-                  <Badge muted={!isOnline(joint, online)}>
-                    {isOnline(joint, online)
-                      ? 'Online · demo'
-                      : 'Offline · demo'}
-                  </Badge>
-                </Row>
-                <Row>
-                  <View>
-                    <Text type="subtitle">
-                      {rom(joint, today[0])}
-                      <Text type="small" themeColor="textSecondary">
-                        °
-                      </Text>
-                    </Text>
-                    <Text type="small" themeColor="textSecondary">
-                      Movement range
-                    </Text>
-                  </View>
-                  <View>
-                    <Text type="subtitle">
-                      {today[0].cycles.toLocaleString()}
-                    </Text>
-                    <Text type="small" themeColor="textSecondary">
-                      Movement cycles
-                    </Text>
-                  </View>
-                  <Icon
-                    name={{
-                      ios: 'chevron.right',
-                      android: 'chevron_right',
-                      web: 'chevron_right',
-                    }}
-                    size={16}
-                    color={c.textSecondary}
-                  />
-                </Row>
-                <JointRangeScale
-                  value={rom(joint, today[0])}
-                  low={reference(joint, today[0].activity)?.low ?? null}
-                  high={reference(joint, today[0].activity)?.high ?? null}
-                  ready={joint.baselineReady}
-                />
+                  {!isOnline(joint, online) ? <Text type="small" themeColor="textSecondary">Device offline</Text> : null}
+                </View>
+                <Text type="title" style={{ color: c.accent, fontVariant: ['tabular-nums'] }}>{latest ? `${rom(joint, latest)}°` : '—'}</Text>
+                <Icon name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }} size={16} color={c.textSecondary} />
               </Pressable>
             </Link>
-          ))}
-        </Section>
-        <Panel>
-          <Text type="label" style={{ color: c.accent }}>
-            A closer look
-          </Text>
-          <Text type="subtitle">
-            Explore your learned landing reference.
-          </Text>
-          <Text type="small" themeColor="textSecondary">
-            Compare separate landing sessions against your synthetic history.
-            Today’s running range stays separate; it has no learned activity reference.
-          </Text>
-          <Action href="/trends">Explore your trends →</Action>
+          </View>)}
         </Panel>
-        <Section title="Recent activity">
-          {sessions.slice(0, 3).map((session) => (
-            <SessionRow key={session.id} session={session} />
-          ))}
-        </Section>
-      </Screen>
-      <DeviceSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
-      <Sheet
-        title="Activity exposure"
-        open={exposureOpen}
-        onClose={() => setExposureOpen(false)}>
-        <Badge muted>Demo · duration summary</Badge>
-        <Text>
-          Today’s {minutes} minutes combine running and walking recording
-          durations. Coverage shows how much of that time has valid samples.
-        </Text>
-        <Text themeColor="textSecondary">
-          Motion range and movement count add context for each joint. Duration
-          alone does not measure joint force or tissue stress.
-        </Text>
-      </Sheet>
-    </>
-  );
+        {disconnected.length ? <Text type="small" themeColor="textSecondary">Device connection unavailable. Recorded measurements are still available.</Text> : null}
+      </Section>
+      <Section title="Latest recording" action={<Action href="/trends">History</Action>}>
+        {latest ? <SessionRow session={latest} /> : <Text themeColor="textSecondary">Your next recording will appear here.</Text>}
+      </Section>
+      </> : <View style={{ gap: s.two, paddingVertical: s.four }}>
+        <Text type="subtitle">Your movement starts here</Text>
+        <Text themeColor="textSecondary">Complete the demo setup to explore readings, a personal baseline, and your next step.</Text>
+      </View>}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: s.two }}>
+        {ready ? <Text type="small" themeColor="textSecondary">{minutes} min recorded · {today.length} demo recordings today</Text> : null}
+        <Action href="/onboarding">Knee guide</Action>
+        {ready ? <Action href="/setup">Review setup</Action> : null}
+      </View>
+    </Screen>
+    <DeviceSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
+  </>;
 }

@@ -52,7 +52,7 @@ export function Screen({ children }: { children: ReactNode }) {
           maxWidth: MaxContentWidth,
           padding: s.four,
           paddingTop: s.three,
-          gap: s.five,
+          gap: s.four,
         }}>
         {children}
       </View>
@@ -209,18 +209,20 @@ export function Sheet({
   open,
   onClose,
   children,
+  fullHeight = false,
 }: {
   title: string;
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  fullHeight?: boolean;
 }) {
   return (
     <Host colorScheme="dark" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={open}
         onDismiss={onClose}
-        snapPoints={['half', 'full']}
+        snapPoints={fullHeight ? ['full'] : ['half', 'full']}
         containerColor={c.backgroundElement}
         contentPadding={0}>
         <ScrollView
@@ -261,7 +263,7 @@ export function PageIntro({
   description,
 }: {
   title: string;
-  description: string;
+  description?: string;
 }) {
   return (
     <View style={{ gap: s.two }}>
@@ -299,21 +301,21 @@ export function PageIntro({
             Kintra
           </Text>
         </View>
-        <Badge muted>Demo data</Badge>
+        <Action href="/demo-lab" label="Open Demo Lab">Demo</Action>
       </Row>
       <Text
         accessibilityRole="header"
         style={{
-          fontSize: 36,
-          lineHeight: 44,
+          fontSize: 30,
+          lineHeight: 38,
           fontWeight: '700',
           letterSpacing: -1,
         }}>
         {title}
       </Text>
-      <Text type="small" themeColor="textSecondary">
+      {description ? <Text type="small" themeColor="textSecondary">
         {description}
-      </Text>
+      </Text> : null}
     </View>
   );
 }

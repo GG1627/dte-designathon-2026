@@ -11,6 +11,7 @@ import {
   Row,
   Screen,
   Section,
+  Sheet,
 } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
@@ -18,12 +19,12 @@ import { joints, type Joint } from '@/data/demo';
 
 export default function JointsScreen() {
   const [open, setOpen] = useState(false);
+  const [otherOpen, setOtherOpen] = useState(false);
   return (
     <>
       <Screen>
         <PageIntro
-          title="Built around you."
-          description="Individual joints. Personal patterns."
+          title="Your joints"
         />
         <Section
           title="Monitored"
@@ -34,28 +35,27 @@ export default function JointsScreen() {
               <JointRow key={joint.id} joint={joint} />
             ))}
         </Section>
-        <Section title="Other joints">
+        <Action onPress={() => setOtherOpen(true)}>Other joints</Action>
+      </Screen>
+      <Sheet title="Other joints" open={otherOpen} onClose={() => setOtherOpen(false)}>
+        <Text type="small" themeColor="textSecondary">No devices or recordings are assigned to these joints.</Text>
           {joints
             .filter((joint) => !joint.monitored)
             .map((joint) => (
-              <JointRow key={joint.id} joint={joint} />
+              <JointRow key={joint.id} joint={joint} onNavigate={() => setOtherOpen(false)} />
             ))}
-        </Section>
-        <Text type="small" themeColor="textSecondary">
-          Each side has its own history and baseline. Measurements stay
-          associated with where the device was worn.
-        </Text>
-      </Screen>
+      </Sheet>
       <DeviceSheet open={open} onClose={() => setOpen(false)} />
     </>
   );
 }
 
-function JointRow({ joint }: { joint: Joint }) {
+function JointRow({ joint, onNavigate }: { joint: Joint; onNavigate?: () => void }) {
   const { online } = useDemo();
   return (
     <Link href={{ pathname: '/joint/[id]', params: { id: joint.id } }} asChild>
       <Pressable
+        onPress={onNavigate}
         accessibilityRole="button"
         accessibilityLabel={`View ${joint.name}`}
         style={{
@@ -73,7 +73,7 @@ function JointRow({ joint }: { joint: Joint }) {
             <Text type="smallBold">{joint.name}</Text>
             <Text type="small" themeColor="textSecondary">
               {joint.monitored
-                ? `${joint.devices.length} pods · ${joint.baselineReady ? 'Reference available' : 'Learning your baseline'}`
+                ? `${joint.devices.length} devices · recorded motion`
                 : 'Not monitored · no data'}
             </Text>
           </View>

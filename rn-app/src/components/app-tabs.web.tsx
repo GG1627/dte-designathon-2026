@@ -38,6 +38,9 @@ export default function AppTabs() {
           <TabTrigger name="joints" href="/joints" asChild>
             <TabButton icon="accessibility_new">Joints</TabButton>
           </TabTrigger>
+          <TabTrigger name="live" href="/live" asChild>
+            <TabButton icon="sensors">Live</TabButton>
+          </TabTrigger>
         </View>
       </TabList>
     </Tabs>
@@ -50,7 +53,7 @@ function TabButton({
   icon,
   ...props
 }: TabTriggerSlotProps & {
-  icon: 'home' | 'show_chart' | 'accessibility_new';
+  icon: 'home' | 'show_chart' | 'accessibility_new' | 'sensors';
 }) {
   return (
     <Pressable

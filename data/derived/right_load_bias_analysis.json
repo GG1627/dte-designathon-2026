@@ -39,7 +39,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.55,
-          "impulse_n_s": 375.10436249999987,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360274,
           "quality": {
             "valid": true,
@@ -104,12 +104,12 @@
         },
         "loading": {
           "peak_force_asymmetry_percent": 9.523809523809526,
-          "impulse_asymmetry_percent": 9.523809523809554
+          "impulse_asymmetry_percent": 9.523809523809524
         },
         "signed_asymmetry_percent": {
           "rom_asymmetry_percent": -5.405405405405417,
           "peak_force_asymmetry_percent": 9.523809523809524,
-          "impulse_asymmetry_percent": 9.523809523809554
+          "impulse_asymmetry_percent": 9.523809523809524
         }
       }
     },
@@ -170,7 +170,7 @@
           "peak_plantar_normal_force_n": 1375.3826625,
           "peak_force_bw": 1.8699999999999999,
           "contact_time_s": 0.5500000000000003,
-          "impulse_n_s": 412.6147987500001,
+          "impulse_n_s": 412.61479875,
           "average_loading_rate_n_s": 4969.350566796303,
           "quality": {
             "valid": true,
@@ -199,12 +199,12 @@
         },
         "loading": {
           "peak_force_asymmetry_percent": 9.523809523809526,
-          "impulse_asymmetry_percent": 9.52380952380955
+          "impulse_asymmetry_percent": 9.523809523809524
         },
         "signed_asymmetry_percent": {
           "rom_asymmetry_percent": -5.405405405405417,
           "peak_force_asymmetry_percent": 9.523809523809524,
-          "impulse_asymmetry_percent": 9.523809523809552
+          "impulse_asymmetry_percent": 9.523809523809524
         }
       }
     },
@@ -229,7 +229,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 375.1043624999999,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360279,
           "quality": {
             "valid": true,
@@ -265,7 +265,7 @@
           "peak_plantar_normal_force_n": 1375.3826625,
           "peak_force_bw": 1.8699999999999999,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 412.61479875000015,
+          "impulse_n_s": 412.61479875,
           "average_loading_rate_n_s": 4969.350566796307,
           "quality": {
             "valid": true,
@@ -294,12 +294,12 @@
         },
         "loading": {
           "peak_force_asymmetry_percent": 9.523809523809526,
-          "impulse_asymmetry_percent": 9.52380952380958
+          "impulse_asymmetry_percent": 9.523809523809524
         },
         "signed_asymmetry_percent": {
           "rom_asymmetry_percent": -5.405405405405398,
           "peak_force_asymmetry_percent": 9.523809523809524,
-          "impulse_asymmetry_percent": 9.52380952380958
+          "impulse_asymmetry_percent": 9.523809523809524
         }
       }
     }

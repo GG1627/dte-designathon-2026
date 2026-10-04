@@ -39,7 +39,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.55,
-          "impulse_n_s": 375.10436249999987,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360274,
           "quality": {
             "valid": true,
@@ -75,7 +75,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.55,
-          "impulse_n_s": 375.10436249999987,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360274,
           "quality": {
             "valid": true,
@@ -229,7 +229,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 375.1043624999999,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360279,
           "quality": {
             "valid": true,
@@ -265,7 +265,7 @@
           "peak_plantar_normal_force_n": 1250.347875,
           "peak_force_bw": 1.7,
           "contact_time_s": 0.5499999999999998,
-          "impulse_n_s": 375.1043624999999,
+          "impulse_n_s": 375.1043625,
           "average_loading_rate_n_s": 4517.591424360279,
           "quality": {
             "valid": true,
