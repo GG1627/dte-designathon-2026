@@ -90,6 +90,17 @@ The internal tooling path is specific to the installed SDK 57 layout; check it i
 
 ## Resuming work
 
+### Generated landing references
+
+Run `python -B scripts/run_baseline_demo.py` from the repository root to refresh
+`src/data/baseline-results.json`. `learned-baselines.ts` exposes the generated
+results, and `landing-baseline.tsx` displays them on Trends and monitored knee
+detail. Controls switch among three synthetic participant histories, ten held-out
+evaluation scenarios, both sides, and 3/5/10/20 reference sessions. History & quality
+shows session medians, MAD, exclusions, and descriptive comparisons. Python is
+the only learner; the app consumes frozen snapshots offline. Running/walking
+charts have no learned reference. See `../docs/baseline-demo.md` for assumptions.
+
 The user approved the current look, blue comparison accents, and horizontal activity cards. Continue from this design and keep changes small. Remaining work includes native safe-area/device checks, branded icon/splash assets, and real data/device integration when requested. No deployment or app-store setup is complete.
 
 Branch: `gael`. Remote: `origin`, `https://github.com/GG1627/dte-designathon-2026.git`. Earlier implementation, visual polish, and activity-card commits were pushed successfully.

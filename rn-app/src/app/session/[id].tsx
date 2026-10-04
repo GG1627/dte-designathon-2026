@@ -80,11 +80,11 @@ export default function SessionScreen() {
                 />
               </Row>
               <Text type="small" themeColor="textSecondary">
-                {joint.baselineReady && session.coverage >= 80
+                {joint.baselineReady && baseline !== null && session.coverage >= 80
                   ? `Compared with an illustrative ${baseline.low}–${baseline.high}° reference for this joint and activity.`
                   : session.coverage < 80
                     ? 'Comparison unavailable because this recording is incomplete.'
-                    : 'Personal comparison unavailable while the baseline develops.'}
+                    : 'No learned reference for this activity. Landing references stay separate.'}
               </Text>
             </Panel>
           );

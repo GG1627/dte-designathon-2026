@@ -1,0 +1,8 @@
+# Python runtime caches are generated locally, not source or fixtures.
+__pycache__/
+*.py[cod]
+
+# Local Python environments are not source.
+.venv/
+.venv-*/
+venv/
