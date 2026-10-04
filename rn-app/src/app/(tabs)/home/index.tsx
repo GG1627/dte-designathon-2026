@@ -41,7 +41,10 @@ export default function HomeScreen() {
       <Section title="Latest recording" action={<Action href="/trends">History</Action>}>
         {latest ? <SessionRow session={latest} /> : <Text themeColor="textSecondary">Your next recording will appear here.</Text>}
       </Section>
-      <Text type="small" themeColor="textSecondary">{minutes} min recorded · {today.length} recordings today</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: s.two }}>
+        <Text type="small" themeColor="textSecondary">{minutes} min recorded · {today.length} recordings today</Text>
+        <Action href="/onboarding">Knee guide</Action>
+      </View>
     </Screen>
     <DeviceSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />
   </>;

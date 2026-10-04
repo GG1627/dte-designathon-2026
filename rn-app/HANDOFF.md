@@ -8,7 +8,8 @@ Kintra names both the wearable platform and companion app. This is a designathon
 
 | Route | Implemented experience |
 | --- | --- |
-| `/` | Branded welcome, K mark, "Your movement, understood." Get started replaces this route with `/home`. |
+| `/` | Branded welcome, K mark, "Your movement, understood." Get started opens `/onboarding` until the guide is completed/skipped, then `/home`. |
+| `/onboarding` | Four illustrated knee-education slides; swipe, Next, Back, tappable progress dots, Skip and Explore the app. Replay through Home's Knee guide link. |
 | `/home` | Both monitored joints visible first, latest activity card, quiet daily duration summary, device sheet. |
 | `/trends` | One joint/activity at a time, week/month range chart, concise period difference, exact-data and quality sheets. Landings show a compact learned comparison. |
 | `/joints` | Monitored joints first; unmonitored joints available through Other joints. |
@@ -42,7 +43,7 @@ Native uses native tabs; web has a separate tab-bar component. Sheets/pickers us
 - The lower-leg pod is shared by knee and ankle; simulating it offline affects both.
 - Connection toggles/checklist confirmations live in `demo-provider.tsx` memory and reset on reload.
 - Running/walking Trends compare the same joint/activity and exclude recordings below 80% valid coverage. They have no learned reference. Landing comparisons display actual Python learner results from the bundled synthetic snapshot.
-- No Bluetooth, backend, authentication, persistent storage, hardware calibration, or validated inference pipeline is connected.
+- No Bluetooth, backend, authentication, persistent measurement storage, hardware calibration, or validated inference pipeline is connected. The knee guide stores only a device-local completion preference.
 - Main measurements: ROM, cycles, duration, coverage. Strength needs instrumented assessment hardware; do not derive it from motion alone or invent readiness/injury scores.
 - Display name is Kintra. Slug, scheme, icons and splash artwork still use starter configuration/assets and need a branding pass before release.
 
@@ -57,6 +58,7 @@ Native uses native tabs; web has a separate tab-bar component. Sheets/pickers us
 | Navigation | `src/components/app-tabs.tsx`, `app-tabs.web.tsx`, `tab-stack.tsx` |
 | Typography/theme/web motion | `src/components/themed-text.tsx`, `src/constants/theme.ts`, `src/global.css` |
 | Sample data/device state | `src/data/demo.ts`, `src/components/demo-provider.tsx` |
+| Knee education/copy/local completion | `src/app/onboarding.tsx`, `src/data/knee-guide.ts`, `src/utils/onboarding.ts`, `assets/images/knee-*.png`, `assets/images/kintra-what-we-measure.png` |
 
 ## Run and verify
 
@@ -90,6 +92,42 @@ npx tsc --noEmit
 The internal tooling path is specific to the installed SDK 57 layout; check it if Expo changes. Do not commit `.expo` files or patch dependencies as a workaround.
 
 ## Resuming work
+
+### Knee guide
+
+The guide covers knee function, conceptual thigh/shin IMUs and pressure insoles,
+injury mechanisms, and general actions to help reduce injury risk. Copy is based
+on AAOS [Common Knee Injuries](https://www.orthoinfo.org/diseases--conditions/common-knee-injuries/)
+and [Safe Exercise](https://www.orthoinfo.org/staying-healthy/safe-exercise/), plus
+the repository measurement contract. It does not promise injury prevention or
+present foot loading as internal knee force. All four supplied illustrations
+are conceptual AI artwork, not validated anatomy, placement instructions, or
+personalized exercise prescriptions.
+
+Completion or Skip sets `kintra.knee-guide.v1.completed` to `true` using Expo's
+`expo-sqlite/localStorage/install` preference API on native and browser
+localStorage on web. No measurement data is stored by this feature. If storage
+is unavailable, entry still works and completion lasts for the current launch;
+the guide may recur on a later launch. The welcome screen remains available.
+Home's Knee guide link always allows replay. Change the versioned key if a later
+guide needs to be shown again. Clearing this key and reloading resets the first-visit flow.
+
+The carousel uses native ScrollView paging, updates progress after scrolling
+settles, and disables programmatic scroll animation with reduced motion.
+Illustrations use `contain`, offscreen slides are hidden from accessibility,
+slide text can scroll at small heights/large text sizes, and all actions remain
+outside the slide scroll area. A failed image leaves the copy and navigation
+available with an explicit illustration-unavailable message.
+
+Verification: lint and TypeScript passed, as did production exports for web,
+iOS and Android. Playwright tested the exported web app at 375 x 812,
+1280 x 900 and 812 x 375: all four slides/images, Next/Back/dots, horizontal
+paging, orientation alignment, completion/Skip persistence and replay passed.
+Reduced motion, doubled web copy, blocked local storage and failed-image
+fallback also passed, with no JavaScript runtime errors. Native swipe,
+screen-reader behavior, persistent storage on a physical device and native
+Dynamic Type still require device testing. Temporary QA scripts/screenshots
+and native bundles are outside the repository.
 
 ### Generated landing references
 

@@ -38,6 +38,7 @@ export default function TabLayout() {
             contentStyle: { backgroundColor: c.background },
           }}>
           <Stack.Screen name="index" options={{ headerShown: false, title: 'Kintra' }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false, title: 'Knee guide' }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="joint/[id]" options={{ title: 'Joint detail' }} />
           <Stack.Screen name="demo-lab" options={{ title: 'Demo Lab' }} />
