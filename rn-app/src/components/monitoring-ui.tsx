@@ -209,18 +209,20 @@ export function Sheet({
   open,
   onClose,
   children,
+  fullHeight = false,
 }: {
   title: string;
   open: boolean;
   onClose: () => void;
   children: ReactNode;
+  fullHeight?: boolean;
 }) {
   return (
     <Host colorScheme="dark" style={{ position: 'absolute' }}>
       <BottomSheet
         isPresented={open}
         onDismiss={onClose}
-        snapPoints={['half', 'full']}
+        snapPoints={fullHeight ? ['full'] : ['half', 'full']}
         containerColor={c.backgroundElement}
         contentPadding={0}>
         <ScrollView

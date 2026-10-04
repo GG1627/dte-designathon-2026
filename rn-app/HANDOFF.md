@@ -8,9 +8,10 @@ Kintra names both the wearable platform and companion app. This is a designathon
 
 | Route | Implemented experience |
 | --- | --- |
-| `/` | Branded welcome, K mark, "Your movement, understood." Get started opens `/onboarding` until the guide is completed/skipped, then `/home`. |
+| `/` | Branded welcome, K mark, "Your movement, understood." Get started always opens `/onboarding` for demo replay. |
 | `/onboarding` | Four illustrated knee-education slides; swipe, Next, Back, tappable progress dots, Skip and Explore the app. Replay through Home's Knee guide link. |
-| `/home` | Both monitored joints visible first, latest activity card, quiet daily duration summary, device sheet. |
+| `/home` | Compact setup entry before completion; afterward knee-bend baseline comparison and suggestion first, then monitored joints, latest activity card, device sheet. |
+| `/setup` | Eight-step demo walkthrough. Continue fills each simulated check immediately; optional timers, movement choices, skip, Back, and close remain available. |
 | `/trends` | One joint/activity at a time, week/month range chart, concise period difference, exact-data and quality sheets. Landings show a compact learned comparison. |
 | `/joints` | Monitored joints first; unmonitored joints available through Other joints. |
 | `/joint/[id]` | Activity-specific primary range or landing comparison; cycles, coverage, assessments and setup behind a tap. |
@@ -108,9 +109,10 @@ Completion or Skip sets `kintra.knee-guide.v1.completed` to `true` using Expo's
 `expo-sqlite/localStorage/install` preference API on native and browser
 localStorage on web. No measurement data is stored by this feature. If storage
 is unavailable, entry still works and completion lasts for the current launch;
-the guide may recur on a later launch. The welcome screen remains available.
+the guide may recur on a later launch. Get started now always opens the guide for
+demonstrations, regardless of this preference. The welcome screen remains available.
 Home's Knee guide link always allows replay. Change the versioned key if a later
-guide needs to be shown again. Clearing this key and reloading resets the first-visit flow.
+guide needs to be shown again. The preference remains separate from measurement data.
 
 The carousel uses native ScrollView paging, updates progress after scrolling
 settles, and disables programmatic scroll animation with reduced motion.
@@ -129,6 +131,45 @@ screen-reader behavior, persistent storage on a physical device and native
 Dynamic Type still require device testing. Temporary QA scripts/screenshots
 and native bundles are outside the repository.
 
+### Demo setup and Home feedback
+
+Setup remains a local walkthrough. Continue never waits for simulated time,
+movement counts, sensor states, or an activity choice: it completes that demo
+step and preserves a chosen movement/activity. Strength training is the visible
+default activity. Timers are optional. Back and close retain progress for this
+launch; reloading the app resets setup. Completion reveals Home's example history.
+
+`src/data/home-bend-demo.ts` generates six complete bends: the first three at
+85 degrees and the last three at 65 degrees, plus three earlier matching sets
+at 88, 85, and 82 degrees. It uses the Live simulation and
+feedback engine, with consistent angle/gyro/gravity scaling. The 85-degree baseline
+is the median of the prior set medians. These examples are never written into
+the user's saved Live sets. Completing setup does not learn a real baseline.
+
+`home-movement-feedback.tsx` leads with shallower later bends, two schematic leg
+positions (blue early, orange late, with a faded early-position outline), and six
+rep markers. The first/last group medians differ by 20 degrees; whole-set typical
+range is 75 degrees. The earlier-set reference remains 85 degrees and is explained
+in the evidence sheet, alongside per-rep measurements.
+
+The intentional-change check-in has planned and unexpected branches. Unexpected
+changes suggest checking fit and repeating comfortable bends with the same setup.
+An optional self-reported tired check-in switches to a rest suggestion, consistent
+with [AAOS Safe Exercise](https://www.orthoinfo.org/staying-healthy/safe-exercise/).
+Answers change suggestions without changing measurements or diagnosing fatigue
+or injury. They last for the current launch and remain selected across tabs.
+The comparison is descriptive; neither the reference nor its deviation is a
+validated exercise target or injury threshold. Setup/review stays a compact action.
+
+Browser verification covered all four images, no-wait setup, Home before/after,
+six-bend evidence and Live navigation, and Get started after prior completion,
+at 375 x 812, 1280 x 900, and 812 x 375 with reduced motion and no page errors.
+The story pass verified exact early/late values, all check-in branches, checked
+semantics, six-rep evidence, and retained context after visiting Live. Eight
+feedback regression tests and independent fixture arithmetic checks passed.
+TypeScript, lint, and web/iOS exports passed. Physical iPhone interaction,
+VoiceOver, and native text scaling still require device testing.
+
 ### Generated landing references
 
 Run `python -B scripts/run_baseline_demo.py` from the repository root to refresh
@@ -146,3 +187,65 @@ charts have no learned reference. See `../docs/baseline-demo.md` for assumptions
 The user approved the current look, blue comparison accents, and horizontal activity cards. Continue from this design and keep changes small. Remaining work includes native safe-area/device checks, branded icon/splash assets, and real data/device integration when requested. No deployment or app-store setup is complete.
 
 Branch: `gael`. Remote: `origin`, `https://github.com/GG1627/dte-designathon-2026.git`. Earlier implementation, visual polish, and activity-card commits were pushed successfully.
+
+### Simulated Live tab
+
+`/live` is available in the native and web tab bars. It starts paused and offers
+slow knee bends, repeated flexion, standing still, and changing-depth bends,
+plus Play/Pause, Zero knee, Reset, and raw IMU readings behind Reading details.
+Switching presets resets playback and
+the display offset. Playback advances only while the tab and app are active.
+The diagram interpolates sensor angles with Reanimated; reduced motion disables
+interpolation. All values are labeled simulated. Knee-bend sets have separate
+local history; they do not update the existing running/walking/landing demo data.
+
+`src/data/live-simulation.ts` defines `LiveSample`: source, sequence, milliseconds,
+and each segment's display angle, acceleration in m/s², gyro in rad/s, and validity.
+The UI converts raw values to g and degrees/s to match the teammate's serial viewer.
+The 20 Hz generator models idealized gravity and X-axis rotation; it has no noise
+or linear acceleration. Zero knee is only a display offset, not calibration.
+
+Start set captures up to five minutes of simulated samples. Finish set presents
+a descriptive takeaway and next step before numbers. Typical range, rep duration,
+range variation, and the takeaway open evidence sheets with per-rep angles,
+time to peak, angular speed/acceleration, and the calculation rules. Optional
+depth/pace targets come from the user's exercise plan. Setup and effort check-ins
+add context; a changed setup blocks the usual comparison.
+
+`src/data/knee-feedback.ts` is dependency-free and segments complete bends without
+crossing invalid samples, sequence gaps, or timestamp breaks. Partial edges are
+excluded. Its 6-degree and 0.4-second segmentation gates are prototype engineering
+rules, not exercise recommendations. Hardware/mixed sources remain unsupported
+for exercise interpretation until calibration and angle estimation are validated.
+The rules describe changes without diagnosing fatigue, injury, or their cause.
+
+Save set stores up to 30 summaries using the existing native/web localStorage
+setup under `kintra.simulated-knee-bends.v1`; raw samples are not persisted.
+Saving is explicit and failures do not claim success. Saved check-ins are read-only.
+References require three earlier matching sets with at least three complete bends,
+confirmed planned setup, the same preset/target/version/source, and valid data.
+The reference is the median of up to five session medians; current/future sets
+are excluded. These are demo sufficiency rules, not validated reference thresholds.
+
+There is no Bluetooth transport, device permission, raw export, or Python
+execution in this screen. A future serial replay/BLE decoder can produce the same
+display contract after firmware units, timing, framing, and angle estimation are
+confirmed. The existing canonical hardware adapter still requires its own quality
+and calibration fields; `LiveSample` alone is not a valid analysis recording.
+
+Verification: TypeScript, lint, web and iOS bundle exports, browser playback/presets/zero/reset/raw
+readings, reduced motion, mobile/desktop layout, and tab navigation passed. Mathematical checks
+confirmed gravity magnitude, angle bounds, and gyro/angle derivative consistency.
+Feedback verification: eight regression tests cover complete/partial/stationary
+bends, changing depth, invalid/gapped/reversed timestamps, nonfinite sensor values,
+hardware provenance, context/reference exclusions, and user targets. Run
+`node --experimental-strip-types tests/knee-feedback.test.mjs` from `rn-app`.
+TypeScript, lint, and web/iOS exports passed. Browser checks covered capture/review,
+tappable details, target validation, setup priority, save/reload, reference matching,
+blocked-storage fallback, and mobile/desktop layout with no runtime errors.
+Native controls, VoiceOver, persistent storage, and motion performance still require
+physical iPhone testing; browser checks do not establish native device behavior.
+
+The parallel React/Vite serial website has a coordination handoff at
+`../docs/serial-web-handoff.md`. Reuse the pure sample/feedback contracts and keep
+simulated and hardware provenance distinct.

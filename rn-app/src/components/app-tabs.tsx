@@ -29,6 +29,10 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Joints</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="figure.walk" md="accessibility_new" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="live">
+        <NativeTabs.Trigger.Label>Live</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="waveform.path" md="sensors" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

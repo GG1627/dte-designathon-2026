@@ -1,16 +1,17 @@
 import { useSetup } from '@/components/setup-provider';
-import { PersonalReference } from '@/components/setup-ui';
+import { HomeMovementFeedback } from '@/components/home-movement-feedback';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { isOnline, useDemo } from '@/components/demo-provider';
-import { Action, DeviceSheet, Divider, Icon, PageIntro, Panel, Screen, Section, SessionRow } from '@/components/monitoring-ui';
+import { Action, DeviceSheet, Divider, Icon, PageIntro, Panel, Row, Screen, Section, SessionRow } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
 import { Palette as c, Spacing as s } from '@/constants/theme';
 import { demoDate, formatDate, joints, rom, sessions } from '@/data/demo';
 
 export default function HomeScreen() {
   const { setup } = useSetup();
+  const ready = setup.setup_status === 'complete';
   const [devicesOpen, setDevicesOpen] = useState(false);
   const { online } = useDemo();
   const today = sessions.filter((session) => session.offset === 0);
@@ -21,12 +22,12 @@ export default function HomeScreen() {
   return <>
     <Screen>
       <PageIntro title="Today" description={formatDate(demoDate, true)} />
-      <Panel accent>
-        <Text type="subtitle">{setup.setup_status === 'complete' ? 'Kintra is ready' : setup.setup_status === 'in_progress' ? 'Setup incomplete' : 'Get ready to move'}</Text>
-        <Text type="small" themeColor="textSecondary">{setup.setup_status === 'complete' ? 'Sensor fit and movement checks complete in this demo.' : 'Help Kintra learn how your sensors are positioned and how you move.'}</Text>
-        <Action primary href="/setup">{setup.setup_status === 'complete' ? 'Review Kintra setup' : setup.setup_status === 'in_progress' ? 'Resume Kintra setup' : 'Set up Kintra'}</Action>
-      </Panel>
-      {setup.setup_status === 'complete' ? <PersonalReference setup={setup} /> : null}
+      {!ready && <Row wrap>
+        <Text type="small" themeColor="textSecondary">Start tracking your movement</Text>
+        <Action href="/setup">{setup.setup_status === 'in_progress' ? 'Resume setup' : 'Set up Kintra'}</Action>
+      </Row>}
+      {ready ? <>
+      <HomeMovementFeedback />
       <Section title="Your joints" action={<Action onPress={() => setDevicesOpen(true)}>Devices</Action>}>
         <Text type="small" themeColor="textSecondary">{latest ? `Movement range · today’s ${latest.activity.toLowerCase()}` : 'No recordings today'}</Text>
         <Panel>
@@ -50,9 +51,14 @@ export default function HomeScreen() {
       <Section title="Latest recording" action={<Action href="/trends">History</Action>}>
         {latest ? <SessionRow session={latest} /> : <Text themeColor="textSecondary">Your next recording will appear here.</Text>}
       </Section>
+      </> : <View style={{ gap: s.two, paddingVertical: s.four }}>
+        <Text type="subtitle">Your movement starts here</Text>
+        <Text themeColor="textSecondary">Complete the demo setup to explore readings, a personal baseline, and your next step.</Text>
+      </View>}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: s.two }}>
-        <Text type="small" themeColor="textSecondary">{minutes} min recorded · {today.length} recordings today</Text>
+        {ready ? <Text type="small" themeColor="textSecondary">{minutes} min recorded · {today.length} demo recordings today</Text> : null}
         <Action href="/onboarding">Knee guide</Action>
+        {ready ? <Action href="/setup">Review setup</Action> : null}
       </View>
     </Screen>
     <DeviceSheet open={devicesOpen} onClose={() => setDevicesOpen(false)} />

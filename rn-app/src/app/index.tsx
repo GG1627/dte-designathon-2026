@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ThemedText as Text } from '@/components/themed-text';
 import { KintraBrand as brand, Radius, Spacing as s } from '@/constants/theme';
-import { hasCompletedOnboarding } from '@/utils/onboarding';
 
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
@@ -48,8 +47,8 @@ export default function WelcomeScreen() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Get started"
-          accessibilityHint="Opens the introduction on your first visit, or your home screen"
-          onPress={() => router.replace(hasCompletedOnboarding() ? '/home' : '/onboarding')}
+          accessibilityHint="Opens the illustrated knee guide"
+          onPress={() => router.replace('/onboarding')}
           style={({ pressed }) => ({
             minHeight: 60,
             paddingHorizontal: s.four,
