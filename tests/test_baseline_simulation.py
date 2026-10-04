@@ -13,7 +13,7 @@ from statistics import median
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import generate_mock_data as mock
-from analyze_knee_kinematics import summarize_knee
+from event_biomechanics import summarize_knee
 from baseline_simulation import (
     CONTEXT_FIELDS, METRICS, Rules, compare_evaluations, evaluation_fixture,
     extract_session, fit_baseline, generate_reference_history, summarize_session,

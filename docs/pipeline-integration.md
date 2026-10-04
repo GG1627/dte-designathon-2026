@@ -8,7 +8,8 @@ synthetic motion and pressure fixtures
   -> process_sensor_session.process_session: Madgwick angles / relative gyro velocity / acceleration
   -> baseline_simulation.extract_session: quality-aware annotated landing metrics
   -> summarize_session / fit_baseline: session medians, personal median and MAD
-  -> compare_evaluations: frozen reference versus separate evaluation
+  -> compare_evaluations: frozen provisional reference versus separate evaluation
+  -> reference_insights: descriptive explanation with supporting metrics
 ```
 
 `scripts/analyze_session.py` is a parallel diagnostic report over extracted
@@ -203,3 +204,24 @@ The former discusses monitoring and interpretation; the latter
 distinguishes within-subject variation, systematic changes, and typical error,
 including CV. These sources do not validate Kintra's metrics, its five-trial
 experiment, or its operational sample counts.
+
+
+The [personal reference schema and judge story](baseline-demo.md#personal-reference-schema-and-athlete-explanation)
+now separates computation from maturity, exports null reliability evidence,
+and adds a deterministic insight layer over the existing comparisons. Both
+analytic and sensor-round-trip modes use this same layer. Reference-matched
+engineering examples appear in the app experiments; the connected sensor demo
+continues to use the original three evaluation fixtures. The sensor processor,
+Madgwick math, calibrated relative gyro velocity, and acceleration are unchanged.
+
+
+## Activity confirmation and reference integrity
+
+The [human-in-the-loop activity context](activity-context.md) extension keeps
+movement candidates separate from confirmed sport/activity. Only trusted user
+confirmation/correction or explicit manual selection can contribute history;
+unconfirmed current sessions retain metrics but cannot compare. The new judge
+flow demonstrates Basketball versus Volleyball using identical processed signals.
+Existing synthetic task sessions carry an explicit manual-selection assumption;
+all previous session-first statistics, provisional maturity, null reliability,
+quality rejection, and fixed-reference behavior remain in place.

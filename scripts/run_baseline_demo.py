@@ -104,7 +104,9 @@ def main():
         value = f"{peak['evaluation_median']:.4f} BW" if peak["evaluation_median"] is not None else "unavailable"
         unavailable = sum(m["status"] == "unavailable" for m in session["comparisons"])
         print(f"{session['session_id']}: right peak {value}, "
-              f"baseline difference {label}; {unavailable} unavailable comparisons.")
+              f"personal reference difference {label}; {unavailable} unavailable comparisons.")
+        for insight in session["insights"]:
+            print(f"  Provisional reference insight: {insight['summary']}")
     dropout = evaluations[-1]
     left_force = next(m for m in dropout["comparisons"]
                       if m["side"] == "left" and m["metric"] == "peak_plantar_normal_force_bw")
@@ -115,7 +117,7 @@ def main():
     if args.sensor_pipeline:
         print("References and evaluations both use ideal IMU emulation and Madgwick. App snapshot unchanged.")
     else:
-        print("Experiments: 3 participant patterns, 10 evaluation scenarios, history sizes 3/5/10/20.")
+        print("Experiments: 3 participant patterns, 13 evaluation scenarios, history sizes 3/5/10/20.")
         print("App snapshot refreshed: rn-app/src/data/baseline-results.json")
     print("Software demonstration only; no real-sensor or medical validation.")
 

@@ -1,4 +1,4 @@
-# Reproducible personal-baseline simulation
+# Personal reference architecture — synthetic prototype
 
 This standard-library Python demonstration follows:
 
@@ -6,8 +6,9 @@ This standard-library Python demonstration follows:
 five synthetic reference sessions
   -> annotated landing metrics
   -> per-session medians
-  -> frozen personal median / MAD
-  -> separate evaluation fixtures
+  -> personal provisional reference: median / descriptive MAD
+  -> separate current-session comparisons
+  -> transparent athlete insight
 ```
 
 The Python learner exports a frozen result snapshot for the mobile app. It uses no database, machine learning, contact detection, or composite health/readiness score. Synthetic differences do not validate real sensors, medical outcomes, injury prediction, or fatigue inference.
@@ -180,3 +181,131 @@ for responsibilities, compatibility fixes and remaining sensor limitations.
 After running the Python command, start the existing app with `cd rn-app` then `npx expo start` (or `npx expo start --web --port 8085`). Trends and the monitored knee detail show the generated landing reference. Select participant, side, evaluation challenge, and history size; open **History & quality** for contributing session medians, stability, rejected events, and descriptive standardized differences.
 
 The app imports `src/data/baseline-results.json` through `learned-baselines.ts`; it displays Python results rather than implementing a second learner. Angles convert to degrees only for display. There is no live ingestion, persistent user history, or automatic background learning. Running/walking demo charts retain their sample data but show no learned activity reference, because a bilateral-landing baseline is incompatible with those activities. Regenerate the snapshot after changing learner rules or synthetic generation.
+
+
+## Personal reference schema and athlete explanation
+
+```text
+Repeated comparable sessions
+    ↓
+Session summaries
+    ↓
+Personal provisional reference
+    ↓
+New session
+    ↓
+Movement + loading comparison
+    ↓
+Explainable athlete insight
+```
+
+Python remains the source of truth. `baseline_simulation` extracts valid event
+metrics, retains exclusions, summarizes each session, fits a fixed reference,
+and compares held-out sessions. `reference_insights.build_insights` consumes
+only derived comparisons. The React Native landing panel renders this generated
+snapshot; it neither fits history nor classifies patterns independently.
+
+Each side/metric now separates `computation_status` (`available` / `unavailable`)
+from `reference_status` (`provisional_reference` / `insufficient_reference`).
+Legacy `status=ready` remains for compatibility and means arithmetic is available
+only. Default sufficiency is five eligible comparable sessions, each with at
+least three valid events; counts remain configurable software demonstration
+rules. `longitudinal_reference` is reserved for future empirical validation and
+is never assigned by this synthetic learner, regardless of history size.
+
+Per-session `event_mad` and `dispersion_scope=within_session_events` describe
+repetition variation. Fitted `mad` and `dispersion_scope=between_session_medians`
+describe dispersion of session medians, with equal session weight. Neither is
+called biological variability or measurement error. Reference results retain
+eligible/session/event counts, contributing IDs, rejected data/reasons, context,
+and configuration/processing fingerprints. Optional acquisition-context fields
+such as footwear, surface, and session type participate in compatibility through
+the existing configuration fingerprint.
+
+`measurement_reliability` is exported for each reference metric and snapshot:
+
+```json
+{
+  "status": "not_empirically_established",
+  "empirically_established": false,
+  "typical_error": null,
+  "cv_percent": null,
+  "sem": null,
+  "mdc": null,
+  "source": null,
+  "clinical_meaning_established": false
+}
+```
+
+The legacy `measurement_error` object is retained. Null fields cannot be
+inferred from synthetic MAD. Real evidence would need metric-, unit-, context-,
+and method-specific reliability provenance before a change could be assessed
+against measurement error or usual biological variation.
+
+Comparisons expose `current_session_value`, `personal_reference_value`, signed
+physical and percent differences, `comparison_availability`, `direction`,
+reference maturity, context, and unavailability reasons. Directions are
+`increased`, `decreased`, or `near_reference`; the latter uses only floating-point
+`isclose(rel_tol=1e-12, abs_tol=1e-12)` in the metric's units. It is not a meaningful
+change threshold. Raw deviations are preserved. Zero reference/MAD handling and
+quality/context rejection remain unchanged.
+
+The insight builder checks availability, provisional maturity, finite evidence,
+and a single matching context. Four movement/peak-force comparisons establish
+three transparent patterns: bilateral force increase with numerically matching
+ROM; decreased ROM with numerically matching peak force; right force increase
+with numerically matching left force and bilateral ROM. Other valid comparisons
+receive descriptive directions, and missing inputs never become evidence of an
+unchanged metric. No available evidence means no insight. Every statement
+exports evidence metrics, sides, units, current/reference values and deviations,
+a rule version, and `medical_inference=false`. External plantar force is not
+internal joint force. Impulse remains visible as a separate comparison; peak
+force rules do not infer identical impulse behavior.
+
+Three additional complete, ideal synthetic measurement examples are generated
+in memory from the balanced trace and the first five session medians. They
+match ROM, peak force and impulse to the reference, then program +10% bilateral
+loading, −20% bilateral ROM, or +14% right loading. Pressure shape is adjusted
+so impulse and peak can both match; all dependent insole fields are rebuilt
+with existing synthetic helpers. Extraction recomputes the metrics from these
+measurements, and comparison/insight code never reads generation targets,
+scenario names, phases or ground truth. They are **reference-matched engineering
+stimuli**, not independent hardware recordings or evidence of generalization.
+At other history sizes their deviations can differ because the reference changes.
+The original three fixtures and seven quality challenges remain unchanged;
+there are now thirteen evaluation examples per participant/history prefix.
+
+The knee detail and Trends landing panel show **Personal reference — Provisional**,
+comparable session and event counts, side/activity, three reference/current/change
+metrics, one Python-generated insight, and **Why am I seeing this?** evidence.
+History/quality details preserve session medians, event MAD, between-session MAD,
+rejections and method/configuration provenance. The panel identifies synthetic
+data and unestablished hardware reliability. It introduces no universal score.
+
+## Designathon story and implementation limits
+
+- **Technical complexity:** relative IMU biomechanics plus plantar measurements,
+  session-first history, and quality/context validation feed explainable comparison.
+- **Novelty direction:** the design compares activity-specific joint mechanics
+  with that athlete's own history; it does not claim market uniqueness.
+- **Potential impact:** explains which movement/loading measurements changed,
+  beyond displaying raw traces. Athlete benefit remains to be evaluated.
+- **Feasibility:** this layer is deterministic software using the existing sensor
+  architecture; it adds no hardware or ML requirement.
+
+This remains an offline designathon prototype. Synthetic history is not validated
+longitudinal evidence. Hardware alignment, calibration, synchronization, noise,
+real-world repeatability, and scientifically justified reference policies remain
+open. No insight infers injury, tissue damage, fatigue, pain, or recovery state.
+
+
+## Activity confirmation and reference integrity
+
+The [human-in-the-loop activity context](activity-context.md) extension keeps
+movement candidates separate from confirmed sport/activity. Only trusted user
+confirmation/correction or explicit manual selection can contribute history;
+unconfirmed current sessions retain metrics but cannot compare. The new judge
+flow demonstrates Basketball versus Volleyball using identical processed signals.
+Existing synthetic task sessions carry an explicit manual-selection assumption;
+all previous session-first statistics, provisional maturity, null reliability,
+quality rejection, and fixed-reference behavior remain in place.
