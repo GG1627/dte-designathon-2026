@@ -1,8 +1,8 @@
 # Website handoff
 
-Built October 4, 2026 in `web-app/`. No mobile files were edited, staged, or
-committed by the website session. No commit was created. Keep website commits
-separate from the concurrent mobile session and the pre-existing serial handoff.
+Built October 4, 2026 in `web-app/`. Website implementation keeps mobile source
+read-only. Mobile and website work were committed separately at the user's
+request. Continue keeping website commits separate from mobile work.
 
 ## Files and shared needs
 
@@ -15,8 +15,14 @@ separate from the concurrent mobile session and the pre-existing serial handoff.
 - `web-app/src/live.tsx`, `feedback.tsx`, `storage.ts`:
   set capture, review/evidence, browser-local simulated summaries, JSON export.
 - `web-app/src/serial.ts`: byte framing, hardware decoder, port lifecycle.
+- `web-app/src/hardware-recording.ts`, `hardware-review.tsx`: analysis-only
+  packet-boundary adapter, shared candidate-cycle inspection, trace and evidence.
+- `web-app/src/scripted-feedback.tsx`: four visibly labeled presentation examples,
+  selected randomly and isolated from hardware analysis, history and exports.
 - `web-app/src/shared.ts`: direct read-only mobile contracts/calculations.
 - `web-app/tests/serial.test.mjs`: software-only decoder and mocked transport tests.
+- `web-app/tests/hardware-recording.test.mjs`: software-only candidate inspection,
+  provenance, exclusions and trace-gap regressions.
 - `web-app/README.md` and this document: running and acceptance instructions.
 
 Shared imports use `rn-app/src/data/live-simulation.ts` and `knee-feedback.ts`.
@@ -96,11 +102,45 @@ fatal errors close the port. User disconnect cancels and releases the reader
 before closing. Close failures remain visible and allow Disconnect retry.
 
 Hardware inspection/recording is supported; exercise interpretation stays blocked.
-No hardware range/repetition scores or simulated-history comparisons are displayed.
+Unvalidated candidate-cycle signal summaries are shown for inspection; no exercise
+scores or simulated-history comparisons are displayed.
 There is no hardware-to-simulation fallback. Exports explicitly state they are
 not canonical sessions. See [pipeline review](pipeline-review.md) for the existing
 Python limitations. Simulation interruptions also break feedback continuity;
 paused/backgrounded periods are not quietly joined into a complete bend.
+
+### Recorded-movement demo
+
+USB serial now provides **Record movement → Stop & review**, an elapsed recording
+timer, fresh-reading state and a relative-angle trace. Only packets received
+during the interval feed the review. `inspectHardwareRecording` calls the existing
+shared `analyzeBends` without changing source or bypassing its `unsupported`
+hardware status. It shows candidate cycles, typical signal range/duration, a
+per-cycle chart and first/last-half signal medians for four or more candidates.
+These describe an unvalidated debug signal, not measured anatomical repetitions,
+exercise advice or a personal baseline. The Python pipeline remains disconnected.
+
+Errors and interruption records cannot be inferred from receiver sequence alone.
+The web adapter excludes the first sample after such a boundary in an analysis-only
+copy so the shared detector cannot join cycles across it. Excluded receiver
+sequences are exported alongside the shared result. Original records, raw sensor
+validity, source and timestamps are preserved. Empty captures have no analysis,
+rather than inheriting the shared engine's default simulated source.
+
+The SVG trace plots received-sample order with explicit gaps, never normalized
+time. Browser wall time drives the timer and recorded interval; candidate-cycle
+durations retain the assumed device-ms calculation. Live angles clear after one
+second without a sample and on packet/filter errors. Candidate results are
+ephemeral until JSON export and never enter saved simulated/personal history.
+Exports remain `canonicalSession: false`, with the interpretation gate intact.
+No shared contracts or mobile files were changed for this feature.
+
+After a nonempty hardware recording, a separate **Scripted demo feedback** card
+shows one of four randomly selected examples (reduced range, variable range,
+changing pace, interrupted capture). It explicitly states the text is not derived
+from the recording or Python backend. Show another example selects a different
+case and does not alter actual results. These example messages are not exported,
+saved as personal history, or described as validated injury detection.
 
 ## Verification
 
@@ -138,6 +178,18 @@ paused/backgrounded periods are not quietly joined into a complete bend.
   regression tests passed. The setup movement label was corrected so its help
   text is an accessible description rather than part of the field name.
 
+Recorded-movement software verification: all 23 web tests passed, including six
+new inspection regressions. Playwright used a **software mock serial port**, not
+an ESP32, at 1280×900, 375×812 and 812×375 (reduced motion). It checked the timer,
+stale-angle clearing, six candidate cycles with early/late signal ranges, recording
+boundaries, calculation/packet evidence, JSON export, interrupted tails, reconnect,
+empty review and the existing simulation flow. No browser errors or horizontal
+overflow were found. Export retained raw device time, wire source fields,
+`source: hardware`, `status: unsupported`, and `canonicalSession: false`; no
+hardware results entered saved simulated history. Mock packet time was compressed
+relative to browser wall time. This verifies software behavior, not physical
+timing, sensor accuracy or successful detection on a person.
+
 ## Physical serial acceptance — pending
 
 No ESP32 was available to the coding session. These steps are required on a real
@@ -152,7 +204,10 @@ device and are not satisfied by mock streams:
 3. Check SI conversions against stationary gravity and an independent known
    rotation/reference. Validate calibration and anatomical angle estimation
    separately before attempting exercise interpretation.
-4. Start a hardware set, inspect thigh/shank evidence, finish and export. Confirm
+4. Record movement, inspect thigh/shank evidence, stop and export. Compare candidate
+   cycles and signal ranges against observed bends/returns and an independent
+   reference; document partial/extra/missed cycles and mounting/sign effects.
+   Inspect first/last-half behavior with four or more observed cycles. Confirm
    original timestamps/source fields, receiver annotations and invalid readings
    remain intact, and the export is labeled noncanonical.
 5. Unplug during a partial packet. Confirm automatic review, retained tail/error

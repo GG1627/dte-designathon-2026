@@ -43,12 +43,36 @@ only during the current review. Reviewing a saved set exports its summary withou
 the original sample stream. Storage failures leave the current set reviewable.
 
 USB serial uses a click-triggered browser port chooser and 115200 baud. Hardware
-sets are inspection recordings, never exercise feedback. Units are unconfirmed;
+sets are inspection recordings, never validated exercise feedback. Units are unconfirmed;
 the relative angle is a complementary-filter debug estimate. Recording stops
 on disconnect, 6,000 samples, or 12,000 evidence records; export before leaving.
 Without a set, the packet inspector retains only the latest 100 records. Partial
 and malformed packets remain evidence; oversized lines retain an explicitly
 marked 8,192-byte prefix and total byte count. Reconnecting starts a new stream.
+
+In USB serial mode, use **Record movement → Stop & review** to capture a chosen
+interval. A timer and live relative-angle trace show the recording in progress.
+The review runs the existing shared bend detector on those captured readings:
+candidate cycles, typical debug-signal range/cycle duration, and first/last-half
+signal ranges when at least four candidates exist. These are explicitly
+unvalidated inspection results; the engine keeps `source: hardware` and
+`status: unsupported`. No exercise advice, anatomical accuracy claim, personal
+reference, or simulated-history save is enabled. The Python baseline pipeline
+is not connected by this feature.
+
+Nonempty hardware reviews also include a separate **Scripted demo feedback**
+card, randomly selected from four presentation examples: reduced range, variable
+range, changing pace, and interrupted capture. Each card explicitly states it is
+not calculated from the recording or Python backend. Show another example chooses
+a different card. Examples make no injury-detection claims and are excluded from
+analysis, saved history, and hardware JSON exports.
+
+Known packet/filter breaks also break candidate detection. The first sample
+after a break is excluded in an analysis-only copy; original packets, sensor
+validity and timestamps stay untouched. The graph uses received-sample order,
+leaves gaps at interruptions, and does not replace device time. The recording
+timer uses browser wall time; candidate durations assume the device's `t` is ms.
+Missing/stale readings clear the live angle rather than appearing current.
 
 Exports use `kintra.web.inspection/1`, retain original JSON fields and device
 timestamps, and explicitly set `canonicalSession: false`. Unavailable numeric

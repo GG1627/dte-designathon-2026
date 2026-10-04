@@ -4,9 +4,11 @@ import { SerialConnection, SERIAL_ASSUMPTIONS, serialSupport, type SerialRecord,
 import { Badge, KneeDiagram, Modal, RawReadings } from './ui';
 import { Feedback } from './feedback';
 import { downloadJson, loadSets, saveSets } from './storage';
+import { inspectHardwareRecording, type HardwareInspection } from './hardware-recording';
+import { HardwareReview, SignalTrace } from './hardware-review';
 
 type Capture = { source: LiveSample['source']; preset: MovementPreset; goal: BendGoal; samples: LiveSample[]; records: SerialRecord[]; startedAt: string };
-type Review = Capture & { endedAt: string; set: BendSet | null };
+type Review = Capture & { endedAt: string; set: BendSet | null; inspection: HardwareInspection | null };
 const LIMIT = 6000;
 
 export function Live({ active }: { active: boolean }) {
@@ -22,9 +24,11 @@ export function Live({ active }: { active: boolean }) {
   const [stored, setStored] = useState(loadSets);
   const [events, setEvents] = useState<SerialRecord[]>([]), [received, setReceived] = useState(0);
   const [visible, setVisible] = useState(!document.hidden);
+  const [now, setNow] = useState(Date.now);
   const connection = useRef<SerialConnection | null>(null), capture = useRef<Capture | null>(null);
   const sequence = useRef(0), lastTick = useRef(Date.now()), latestHardware = useRef<LiveSample | null>(null);
   const journal = useRef<SerialRecord[]>([]), packetCount = useRef(0);
+  const latestHardwareAt = useRef(0);
   const finishRef = useRef<() => void>(() => {});
   const support = serialSupport();
 
@@ -36,7 +40,8 @@ export function Live({ active }: { active: boolean }) {
       id: crypto.randomUUID(), createdAt: captured.startedAt, preset: captured.preset, goal: captured.goal,
       checkIn: { setup: 'unknown', effort: 'unknown' }, analysis: analyzeBends(captured.samples),
     } : null;
-    setReview({ ...captured, endedAt: new Date().toISOString(), set }); setSaved(false);
+    setReview({ ...captured, endedAt: new Date().toISOString(), set,
+      inspection: captured.source === 'hardware' ? inspectHardwareRecording(captured.records) : null }); setSaved(false);
   }
   finishRef.current = finish;
   useEffect(() => {
@@ -58,10 +63,15 @@ export function Live({ active }: { active: boolean }) {
     return () => clearInterval(timer);
   }, [source, playing, preset, active, visible]);
   useEffect(() => {
-    if (source !== 'hardware') return;
-    const timer = setInterval(() => { setSample(latestHardware.current); setEvents([...journal.current]); setReceived(packetCount.current); }, 100);
+    if (source !== 'hardware' || review) return;
+    const timer = setInterval(() => { setSample(latestHardware.current); setEvents([...journal.current]); setReceived(packetCount.current); setNow(Date.now()); }, 100);
     return () => clearInterval(timer);
-  }, [source]);
+  }, [source, review]);
+  useEffect(() => {
+    if (!recording || source === 'hardware') return;
+    const timer = setInterval(() => setNow(Date.now()), 500);
+    return () => clearInterval(timer);
+  }, [recording, source]);
   useEffect(() => () => { void connection.current?.dispose(); }, []);
 
   function reset(next: MovementPreset = preset) {
@@ -77,7 +87,8 @@ export function Live({ active }: { active: boolean }) {
     if (!support.api) return;
     if (!connection.current) connection.current = new SerialConnection(support.api, (record) => {
       journal.current = [...journal.current.slice(-99), record];
-      if (record.sample) { latestHardware.current = record.sample; packetCount.current++; }
+      if (record.kind === 'error' || record.kind === 'interruption') latestHardware.current = null;
+      if (record.sample) { latestHardware.current = record.sample; latestHardwareAt.current = Date.now(); packetCount.current++; }
       if (capture.current?.source === 'hardware') {
         capture.current.records.push(record);
         if (record.sample) capture.current.samples.push(record.sample);
@@ -99,7 +110,7 @@ export function Live({ active }: { active: boolean }) {
     if (source === 'simulated' && goalKind !== 'observe' && (!target.trim() || !Number.isFinite(chosen) || chosen! <= 0 || (goalKind === 'depth' && chosen! > 180))) {
       setNotice('Enter a positive target. Bend-depth targets must be 180° or less.'); return;
     }
-    reset(); setReview(null); setSaved(false);
+    reset(); setReview(null); setSaved(false); setNow(Date.now());
     capture.current = { source, preset, goal: { kind: source === 'hardware' ? 'observe' : goalKind, target: source === 'hardware' ? null : chosen },
       samples: source === 'simulated' ? [simulateSample(preset, 0)] : [], records: [], startedAt: new Date().toISOString() };
     setRecording(true); if (source === 'simulated') setPlaying(true);
@@ -107,10 +118,12 @@ export function Live({ active }: { active: boolean }) {
   function exportReview() {
     if (!review) return;
     downloadJson({ schema: 'kintra.web.inspection/1', ...review, assumptions: review.source === 'hardware' ? SERIAL_ASSUMPTIONS : undefined,
-      canonicalSession: false, interpretation: review.source === 'hardware' ? 'blocked: calibration, angle estimation and segmentation unvalidated' : 'simulated descriptive feedback' }, `kintra-${review.source}-${review.startedAt.replace(/[:.]/g, '-')}.json`);
+      canonicalSession: false, interpretation: review.source === 'hardware' ? 'exercise feedback blocked; candidate cycles are unvalidated debug-signal inspection only' : 'simulated descriptive feedback' }, `kintra-${review.source}-${review.startedAt.replace(/[:.]/g, '-')}.json`);
   }
-  const angle = sample && sample.thigh.valid && sample.shank.valid ? sample.shank.angleDeg - sample.thigh.angleDeg - zero : null;
   const hardware = source === 'hardware';
+  const displayedSample = hardware && (serialState !== 'connected' || now - latestHardwareAt.current > 1000) ? null : sample;
+  const angle = displayedSample && displayedSample.thigh.valid && displayedSample.shank.valid ? displayedSample.shank.angleDeg - displayedSample.thigh.angleDeg - zero : null;
+  const elapsedS = capture.current ? Math.max(0, (now - Date.parse(capture.current.startedAt)) / 1000) : 0;
   return <div className="stack"><div className="row wrap"><h1>Live movement</h1><Badge hardware={hardware}>{hardware ? 'Hardware · inspection only' : 'Simulated data'}</Badge></div>
     <div className="row wrap"><div className="segmented" aria-label="Data source">{(['simulated', 'hardware'] as const).map((v) => <button key={v} aria-pressed={source === v} disabled={recording || ['connecting', 'disconnecting'].includes(serialState)} onClick={() => switchSource(v)}>{v === 'simulated' ? 'Simulation' : 'USB serial'}</button>)}</div><span className="muted">{review ? 'Set complete · Review' : recording ? hardware || playing && active && visible ? 'Recording set' : 'Set paused' : hardware ? serialState : playing && active && visible ? 'Preview playing' : 'Preview paused'}</span></div>
     {notice ? <p role="status" className="warning">{notice}</p> : null}
@@ -119,18 +132,20 @@ export function Live({ active }: { active: boolean }) {
       {review.set ? <Feedback set={review.set} history={stored.sets} saved={saved} error={stored.error} onCheckIn={(checkIn) => setReview({ ...review, set: { ...review.set!, checkIn } })} onSave={() => {
         const next = [review.set!, ...stored.sets.filter((s) => s.id !== review.set!.id)].slice(0, 30);
         const error = saveSets(next); setStored({ sets: error ? stored.sets : next, error }); setSaved(!error);
-      }} onNew={() => { setReview(null); reset(); }}/> : <section className="panel accent-panel"><Badge hardware>Hardware recording</Badge><h2>Movement estimate needs validation</h2><p>Use the sensor display for inspection. Validate calibration, angle estimation, and segmentation before using exercise feedback.</p><p>{review.samples.length} received samples · {review.records.filter((r) => r.kind === 'error' || r.kind === 'interruption' || r.message).length} error or interruption records</p><p className="muted">Raw timestamps, source fields, invalid readings, and packet errors are retained in the export. No exercise metrics or personal comparisons are produced.</p><div className="actions"><button onClick={() => setDetail(true)}>Recording evidence</button><button onClick={() => { setReview(null); reset(); }}>New set</button></div></section>}
+      }} onNew={() => { setReview(null); reset(); }}/> : <HardwareReview inspection={review.inspection!} records={review.records} durationS={Math.max(0, (Date.parse(review.endedAt) - Date.parse(review.startedAt)) / 1000)} sampleCount={review.samples.length} onEvidence={() => setDetail(true)} onNew={() => { setReview(null); reset(); }}/>}
       <button onClick={exportReview}>Export {review.source === 'hardware' ? 'hardware recording' : 'simulated set'} JSON</button>
-    </> : <div className="live-grid"><section className="panel angle-panel"><div className="row wrap"><span className="label">{hardware ? 'Relative debug angle' : 'Knee flexion'}</span><span className="muted small">{hardware ? 'Unvalidated estimate' : 'Simulated angle'}</span></div><button className="plain angle-reading" onClick={() => setDetail(true)} aria-label="Explain the current knee angle"><strong className="metric orange">{angle === null || !Number.isFinite(angle) ? '—' : `${angle.toFixed(1)}°`}</strong><span className="orange small">Reading details ↗</span></button><KneeDiagram sample={sample}/><div className="row small muted"><span className="blue">Thigh</span><span className="orange">Shank</span></div></section>
+    </> : <div className="live-grid"><section className="panel angle-panel"><div className="row wrap"><span className="label">{hardware ? 'Relative debug angle' : 'Knee flexion'}</span><span className="muted small">{hardware ? 'Unvalidated estimate' : 'Simulated angle'}</span></div><button className="plain angle-reading" onClick={() => setDetail(true)} aria-label="Explain the current knee angle"><strong className="metric orange">{angle === null || !Number.isFinite(angle) ? '—' : `${angle.toFixed(1)}°`}</strong><span className="orange small">Reading details ↗</span></button><KneeDiagram sample={displayedSample}/><div className="row small muted"><span className="blue">Thigh</span><span className="orange">Shank</span></div>{hardware ? <><p role="status" className="muted small">{angle === null ? 'Waiting for fresh, usable sensor data.' : 'Live wearable signal · prototype estimate'}</p><SignalTrace records={recording ? capture.current?.records.slice(-240) ?? [] : events}/></> : null}</section>
       <div className="stack">{!hardware ? <section className="panel"><label>Movement<select value={preset} disabled={recording} onChange={(e) => reset(e.target.value as MovementPreset)}>{movementPresets.map((p) => <option value={p.id} key={p.id}>{p.label}</option>)}</select></label></section> : null}
-      <section className="panel"><h2>{recording ? 'Your set is recording' : hardware ? 'Record sensor packets' : 'Set focus'}</h2>{!recording && !hardware ? <><label>Focus<select value={goalKind} onChange={(e) => { setGoalKind(e.target.value as BendGoal['kind']); setTarget(''); }}><option value="observe">Observe my movement</option><option value="depth">My chosen bend depth</option><option value="pace">My chosen rep pace</option></select></label>{goalKind !== 'observe' ? <label>{goalKind === 'depth' ? 'Deepest bend target (degrees)' : 'Rep duration target (seconds)'}<input inputMode="decimal" type="number" min="0" max={goalKind === 'depth' ? 180 : undefined} value={target} onChange={(e) => setTarget(e.target.value)}/><span className="muted small">Use a target from your exercise plan.</span></label> : null}</> : null}
-      <p className="muted">{recording ? `${capture.current?.samples.length ?? 0} samples captured${hardware ? '' : ' · finish after complete bends'}` : hardware ? 'Records stay in this visit until you export them. Reconnects start a new recording.' : 'Complete a bend and return, then finish the set to review.'}</p><button className="primary" disabled={hardware && serialState !== 'connected' && !recording} onClick={recording ? finish : start}>{recording ? 'Finish set' : 'Start set'}</button></section>
+      <section className="panel"><h2>{recording ? 'Your set is recording' : hardware ? 'See your movement analyzed' : 'Set focus'}</h2>{!recording && !hardware ? <><label>Focus<select value={goalKind} onChange={(e) => { setGoalKind(e.target.value as BendGoal['kind']); setTarget(''); }}><option value="observe">Observe my movement</option><option value="depth">My chosen bend depth</option><option value="pace">My chosen rep pace</option></select></label>{goalKind !== 'observe' ? <label>{goalKind === 'depth' ? 'Deepest bend target (degrees)' : 'Rep duration target (seconds)'}<input inputMode="decimal" type="number" min="0" max={goalKind === 'depth' ? 180 : undefined} value={target} onChange={(e) => setTarget(e.target.value)}/><span className="muted small">Use a target from your exercise plan.</span></label> : null}</> : null}
+      {hardware && !recording ? <p>See the bend detector in action: record several bends and returns, then review the signal and candidate cycles.</p> : null}
+      {recording ? <strong className="metric-small recording-time" aria-label="Recording time">{Math.floor(elapsedS / 60).toString().padStart(2, '0')}:{Math.floor(elapsedS % 60).toString().padStart(2, '0')}</strong> : null}
+      <p className="muted">{recording ? `${capture.current?.samples.length ?? 0} samples captured${hardware ? '' : ' · finish after complete bends'}` : hardware ? 'Only packets received during this recording are analyzed. Export the review before leaving.' : 'Complete a bend and return, then finish the set to review.'}</p><button className="primary" disabled={hardware && serialState !== 'connected' && !recording} onClick={recording ? finish : start}>{hardware ? recording ? 'Stop & review' : 'Record movement' : recording ? 'Finish set' : 'Start set'}</button></section>
       {!hardware ? <section className="panel"><h3>Preview controls</h3><div className="actions"><button onClick={() => {
         if (!playing && !recording) lastTick.current = Date.now();
         setPlaying(!playing);
       }}>{playing ? 'Pause' : 'Play'}</button><button disabled={recording} onClick={() => setZero(sample!.shank.angleDeg - sample!.thigh.angleDeg)}>Zero knee</button><button disabled={recording} onClick={() => reset()}>Reset</button></div><p className="muted small">Zeroing changes the display only. Analysis uses the original segment angles.</p></section> : <section className="panel"><h3>Packet stream</h3><p>{received.toLocaleString()} packets received</p><p className="muted small">Receiver sequence and field checks do not establish measured hardware quality.</p>{events.filter((e) => e.kind === 'error' || e.kind === 'interruption' || e.message).slice(-3).map((e, i) => <p className="warning small" key={i}>{e.message}</p>)}</section>}
       </div></div>}
-    {!hardware && !recording && stored.sets.length ? <section className="stack"><h2>Saved knee-bend sets</h2>{stored.sets.slice(0, 5).map((set) => <button className="panel record-row" key={set.id} onClick={() => { setPlaying(false); setSaved(true); setReview({ source: 'simulated', preset: set.preset, goal: set.goal, startedAt: set.createdAt, endedAt: set.createdAt, samples: [], records: [], set }); }}><span><strong>{movementPresets.find((p) => p.id === set.preset)?.label} · {set.analysis.reps.length} bends ↗</strong><span className="muted small">{new Date(set.createdAt).toLocaleString()} · Simulated</span></span><span className="orange">{set.analysis.medianRangeDeg === null ? '—' : `${set.analysis.medianRangeDeg.toFixed(0)}°`}</span></button>)}</section> : null}
-    {detail ? <Modal title={hardware ? 'Hardware recording evidence' : 'Knee angle details'} onClose={() => setDetail(false)}><Badge hardware={hardware}>{hardware ? 'Hardware · debug estimate' : 'Simulated readings'}</Badge><p>{hardware ? 'Complementary-filter orientation is an inspection estimate, not a validated anatomical angle. Timestamp gaps reset the filter. Missing sequence and quality fields are unknown, not measured.' : `Shank angle minus thigh angle, minus display offset (${zero.toFixed(1)}°). This instant angle differs from the range of a complete bend.`}</p><RawReadings sample={hardware && review ? review.samples.at(-1) ?? null : sample}/>{hardware ? <><h3>Packet evidence</h3><p className="muted">{review ? 'Captured recording records' : 'Latest 100 connection records; start a set to retain and export a recording.'}</p><div className="packet-log">{(review?.records ?? events).slice(-100).map((e, i) => <details key={i}><summary>{e.kind} · {e.receivedAt.slice(11, 23)} {e.message ?? ''}</summary><pre>{JSON.stringify(e, (_key, v) => typeof v === 'number' && !Number.isFinite(v) ? null : v, 2)}</pre></details>)}</div></> : null}</Modal> : null}
+    {!hardware && !recording && stored.sets.length ? <section className="stack"><h2>Saved knee-bend sets</h2>{stored.sets.slice(0, 5).map((set) => <button className="panel record-row" key={set.id} onClick={() => { setPlaying(false); setSaved(true); setReview({ source: 'simulated', preset: set.preset, goal: set.goal, startedAt: set.createdAt, endedAt: set.createdAt, samples: [], records: [], set, inspection: null }); }}><span><strong>{movementPresets.find((p) => p.id === set.preset)?.label} · {set.analysis.reps.length} bends ↗</strong><span className="muted small">{new Date(set.createdAt).toLocaleString()} · Simulated</span></span><span className="orange">{set.analysis.medianRangeDeg === null ? '—' : `${set.analysis.medianRangeDeg.toFixed(0)}°`}</span></button>)}</section> : null}
+    {detail ? <Modal title={hardware ? 'Hardware recording evidence' : 'Knee angle details'} onClose={() => setDetail(false)}><Badge hardware={hardware}>{hardware ? 'Hardware · debug estimate' : 'Simulated readings'}</Badge><p>{hardware ? 'Complementary-filter orientation is an inspection estimate, not a validated anatomical angle. Timestamp gaps reset the filter. Missing sequence and quality fields are unknown, not measured.' : `Shank angle minus thigh angle, minus display offset (${zero.toFixed(1)}°). This instant angle differs from the range of a complete bend.`}</p><RawReadings sample={hardware && review ? review.samples.at(-1) ?? null : displayedSample}/>{hardware ? <><h3>Packet evidence</h3><p className="muted">{review ? 'Captured recording records' : 'Latest 100 connection records; start a set to retain and export a recording.'}</p><div className="packet-log">{(review?.records ?? events).slice(-100).map((e, i) => <details key={i}><summary>{e.kind} · {e.receivedAt.slice(11, 23)} {e.message ?? ''}</summary><pre>{JSON.stringify(e, (_key, v) => typeof v === 'number' && !Number.isFinite(v) ? null : v, 2)}</pre></details>)}</div></> : null}</Modal> : null}
   </div>;
 }
