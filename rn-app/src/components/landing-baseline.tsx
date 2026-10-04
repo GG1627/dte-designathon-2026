@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View } from 'react-native';
+import { ActivityContextDemo } from '@/components/activity-context-demo';
 import { SelectionControl as Choice } from '@/components/selection-control';
 import { Action, Badge, Divider, Panel, Row, Section, Sheet } from '@/components/monitoring-ui';
 import { ThemedText as Text } from '@/components/themed-text';
@@ -11,7 +12,7 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
 }) {
   const [participantId, setParticipantId] = useState(learnedBaselines.participants[0].profile.id);
   const [side, setSide] = useState<string>(initialSide);
-  const [scenario, setScenario] = useState('balanced');
+  const [scenario, setScenario] = useState(mode === 'summary' ? 'balanced' : 'reference_right_loading');
   const [historyCount, setHistoryCount] = useState('5');
   const [details, setDetails] = useState<MetricName | null>(null);
   const participant = learnedBaselines.participants.find((p) => p.profile.id === participantId);
@@ -22,18 +23,36 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
       <Text>No matching generated history or evaluation is available.</Text></Panel>;
   }
   const first = snapshot.metrics.find((m) => m.side === side);
-  const ready = first?.status === 'ready';
+  const ready = first?.reference_status === 'provisional_reference';
+  const insight = evaluation.insights.find((item) => item.side === 'bilateral' || item.side === side);
   const selectedMetric = snapshot.metrics.find((m) => m.side === side && m.metric === details);
   const selectedComparison = evaluation.comparisons.find((m) => m.side === side && m.metric === details);
   const selectedSummary = evaluation.session_metrics.find((m) => m.side === side && m.metric === details);
   const compact = mode === 'summary';
-  return <Section title={compact ? 'Landing comparison' : 'Reference experiment'}>
+  const insightPanel = <Panel>
+    <Text type="smallBold">{insight?.title ?? 'Insight unavailable'}</Text>
+    <Text type="small">{insight?.summary ?? 'Comparable usable metrics are needed before describing a change.'}</Text>
+    {insight ? <>
+      <Divider />
+      <Text type="smallBold">Why am I seeing this?</Text>
+      {insight.evidence.map((item) => <Text key={`${item.side}-${item.metric}`} type="small" themeColor="textSecondary">
+        {item.side === 'right' ? 'Right' : 'Left'} · {metricLabels[item.metric as MetricName] ?? item.metric}: {formatMetric(item.current, item.metric)} vs {formatMetric(item.reference, item.metric)}
+        {item.percent_difference !== null ? ` (${item.percent_difference >= 0 ? '+' : ''}${item.percent_difference.toFixed(1)}%)` : ''}
+      </Text>)}
+    </> : null}
+  </Panel>;
+  return <>
+    {!compact ? <ActivityContextDemo side={side as Side} /> : null}
+    <Section title={compact ? 'Landing comparison' : 'Personal reference'}>
     {compact ? <Text type="small" themeColor="textSecondary">
-      {side === 'right' ? 'Right' : 'Left'} knee · balanced landing session
+      {side === 'right' ? 'Right' : 'Left'} knee · balanced landing session · {ready ? 'provisional reference' : 'insufficient reference'}
     </Text> : <Panel>
-      <Row wrap><Badge comparison>Learned · synthetic</Badge>
-        <Badge muted={!ready}>{ready ? `${historyCount} reference sessions` : 'Reference developing'}</Badge></Row>
-      <Text type="small" themeColor="textSecondary">Bilateral landings · knee. Independent simulated histories; no live devices.</Text>
+      <Row wrap><Badge comparison>Synthetic demonstration</Badge>
+        <Badge muted={!ready}>{ready ? 'Provisional' : 'Insufficient reference'}</Badge></Row>
+      <Text type="smallBold">{side === 'right' ? 'Right' : 'Left'} knee · bilateral landing</Text>
+      <Text type="small">Based on {first?.eligible_session_count ?? 0} comparable sessions · {first?.contributing_event_count ?? 0} valid landing events for knee ROM.</Text>
+      <Text type="small" themeColor="textSecondary">Provisional reference — measurement reliability has not yet been established with physical hardware. Session minimums are demonstration rules.</Text>
+      <Text type="small" themeColor="textSecondary">Separate task-history explorer: manually selected bilateral landings · knee. Synthetic histories; no live devices.</Text>
       <Row wrap>
         <Choice label="Participant" value={participantId} onChange={setParticipantId}
           options={learnedBaselines.participants.map((p) => ({ value: p.profile.id, label: p.profile.label }))} />
@@ -76,17 +95,20 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
           {difference >= 0 ? '+' : '−'}{formatMetric(Math.abs(difference), name)} from reference
           {comparison.percent_difference !== null ? ` (${comparison.percent_difference >= 0 ? '+' : ''}${comparison.percent_difference.toFixed(1)}%)` : ''}
         </Text> : <Text type="small" themeColor="textSecondary">
-          {comparison.reasons.includes('insufficient_valid_events')
+          {comparison.reasons.includes('activity_confirmation_required')
+            ? 'Confirm the activity to compare this session with your personal reference.'
+            : comparison.reasons.includes('insufficient_valid_events')
             ? `${summary.valid_event_count} of ${summary.total_event_count} valid landings; ${snapshot.rules.min_valid_events} needed for comparison.`
             : comparison.reasons.includes('insufficient_reference_history')
               ? `${reference.eligible_session_count} comparable sessions; ${snapshot.rules.min_reference_sessions} needed for a reference.`
               : 'Comparison unavailable for this recording context.'}
         </Text>}
         {!compact ? <Text type="small" themeColor="textSecondary">
-          {reference.contributing_event_count} reference landings · variability (MAD) {formatMetric(reference.mad, name)}
+          {reference.contributing_event_count} reference landings · between-session median MAD {formatMetric(reference.mad, name)}
         </Text> : null}
       </Panel>;
     })}
+    {!compact ? insightPanel : null}
     {!compact ? <Text type="small" themeColor="textSecondary">References stay frozen during comparison. Differences describe movement and plantar loading, not injury risk or readiness.</Text> : null}
     <Sheet title={details ? `${metricLabels[details]} · reference` : 'Reference'} open={details !== null} onClose={() => setDetails(null)}>
       <Badge muted>Synthetic history</Badge>
@@ -98,7 +120,8 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
       </Text> : <Text type="small" themeColor="textSecondary">{selectedComparison?.reasons.join(', ').replaceAll('_', ' ')}</Text>}
       {details && details !== 'knee_rom_rad' ? <Text type="small" themeColor="textSecondary">BW is body-weight units. These measurements describe plantar loading, not internal knee force.</Text> : null}
       <Divider />
-      <Text type="small">Each eligible session contributes one median, regardless of landing count. MAD describes variation between those session medians.</Text>
+      <Text type="small">Each eligible session contributes one median, regardless of landing count. MAD describes differences between synthetic session medians, not biological variability or measurement error.</Text>
+      {compact ? insightPanel : null}
       <Text type="smallBold">As reference history grows</Text>
       {participant.snapshots.map((item) => {
         const metric = item.metrics.find((m) => m.side === side && m.metric === details);
@@ -112,8 +135,13 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
       <Text type="smallBold">Contributing sessions</Text>
       {selectedMetric?.session_summaries.map((item) => <Row key={item.session_id} wrap>
         <Text type="small" style={{ flexShrink: 1 }}>{item.session_id}</Text>
-        <Text type="small">{formatMetric(item.median, details ?? '')} · {item.valid_event_count} landings</Text>
+        <Text type="small">{formatMetric(item.median, details ?? '')} · {item.valid_event_count} landings · event MAD {formatMetric(item.event_mad, details ?? '')}</Text>
       </Row>)}
+      {selectedMetric?.session_summaries.flatMap((item) => item.rejected_events.map((event) => <Text key={`${item.session_id}-${event.event_id}`} type="small" themeColor="textSecondary">
+        {item.session_id} · {event.event_id}: {event.reasons.join(', ').replaceAll('_', ' ')}
+      </Text>))}
+      <Text type="small" themeColor="textSecondary">Context: {selectedMetric?.context.activity} · {selectedMetric?.context.configuration_id} · {selectedMetric?.context.processing_version}</Text>
+      <Text type="small" themeColor="textSecondary">Typical error, CV, SEM and MDC: not empirically established.</Text>
       <Divider />
       <Text type="smallBold">Evaluation quality</Text>
       <Text type="small">{selectedSummary?.valid_event_count} of {selectedSummary?.total_event_count} landings accepted.</Text>
@@ -123,5 +151,5 @@ export function LandingBaseline({ initialSide = 'right', mode = 'lab' }: {
       <Text type="small">Standardized difference: {selectedComparison?.robust_standardized_difference?.toFixed(2) ?? 'Unavailable'}</Text>
       <Text type="small" themeColor="textSecondary">Relative to reference MAD, not an injury probability. {selectedComparison?.standardized_difference_reasons.join(', ').replaceAll('_', ' ')}</Text>
     </Sheet>
-  </Section>;
+  </Section></>;
 }

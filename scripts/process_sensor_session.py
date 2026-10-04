@@ -1,202 +1,103 @@
-"""Kintra raw-to-processed session pipeline; currently ideal mounting only.
+"""Legacy schema/CLI adapter over canonical validation, calibration and kinematics.
 
-No ground truth participates in processing. Initialization assumes the first
-sample is stationary and both sensor yaw references are zero. This is suitable
-for the sagittal fixture, not an arbitrary 3-D anatomical angle calibration.
+Implicit identity calibration is restricted to explicitly ideal synthetic fixtures.
+Other mounting requires per-side static/functional calibration records. Runtime
+orientation and derivatives are owned exclusively by aligned_kinematics.
 """
 import argparse
 import copy
 import json
-import math
 from pathlib import Path
 
-from madgwick import MadgwickIMU, quaternion_relative, relative_flexion_y_rad
+from aligned_kinematics import reconstruct, finite_difference, INITIAL_TILT_ITERATIONS
+from signal_preprocessing import validate_signals
+from sensor_to_segment_calibration import calibrate_pair
+from synthetic_sensor_validation import validate_processed
 
 ROOT = Path(__file__).resolve().parents[1]
 BETA = 0.1
-INITIAL_TILT_ITERATIONS = 200
 
 
-def validate_timestamps(data):
-    samples = data["samples"]
-    rate = data["sampling"]["rate_hz"]
-    if not math.isfinite(rate) or rate <= 0 or len(samples) < 3:
-        raise ValueError("Positive sampling rate and at least three samples required")
-    nominal_dt = 1 / rate
-    intervals = []
-    for i, row in enumerate(samples):
-        if not math.isfinite(row["timestamp_s"]) or type(row["sequence"]) is not int:
-            raise ValueError("Invalid timestamp or sequence number")
-        if i:
-            previous = samples[i - 1]
-            dt = row["timestamp_s"] - previous["timestamp_s"]
-            if dt <= 0 or row["sequence"] <= previous["sequence"]:
-                raise ValueError("Timestamps and sequence numbers must strictly increase")
-            if row["sequence"] != previous["sequence"] + 1 or not math.isclose(dt, nominal_dt, rel_tol=0.01, abs_tol=1e-9):
-                raise ValueError("Missing sample or unexpected sampling interval; no interpolation")
-            intervals.append(dt)
-    return {
-        "validation": "PASS", "expected_interval_s": nominal_dt,
-        "observed_min_interval_s": min(intervals), "observed_max_interval_s": max(intervals),
-        "resampling": "none", "sequence_gaps": 0,
-        "clock": data["sampling"]["clock"],
-        "synchronization_uncertainty_s": data["sampling"].get("synchronization_uncertainty_s"),
-        "synchronization_basis": "input clock metadata; sample timing checked, cross-device offset not independently measured",
-    }
-
-
-def calibrate_imu(packet):
-    """Explicit identity sensor-to-segment stage; no corrections for ideal mounting."""
-    if packet.get("quality", {}).get("valid", True) is not True:
-        raise ValueError("Invalid IMU quality; interpolation is not supported")
-    gyro = tuple(packet["gyro_rad_s"][axis] for axis in ("x", "y", "z"))
-    accel = tuple(packet["accel_m_s2"][axis] for axis in ("x", "y", "z"))
-    if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
-               and math.isfinite(value) for value in gyro + accel):
-        raise ValueError("Missing or nonfinite IMU sample; interpolation is not supported")
-    return gyro, accel
-
-
-def check_quaternion(q):
-    if not all(math.isfinite(value) for value in q) or not math.isclose(math.hypot(*q), 1.0, abs_tol=1e-10):
-        raise ValueError("Quaternion is nonfinite or not normalized")
-
-
-def finite_difference(values, times):
-    """Secant central differences inside; first-order one-sided at boundaries.
-
-    Interior: (v[i+1]-v[i-1])/(t[i+1]-t[i-1]). Apply twice for acceleration.
-    No smoothing or interpolation; derivative noise is not suppressed here.
-    """
-    return [
-        (values[min(i + 1, len(values) - 1)] - values[max(i - 1, 0)])
-        / (times[min(i + 1, len(times) - 1)] - times[max(i - 1, 0)])
-        for i in range(len(values))
-    ]
-
-
-def process_session(raw):
-    timing = validate_timestamps(raw)
-    if raw["processing"].get("sensor_to_segment_alignment") != "ideal":
-        raise ValueError("Only explicitly ideal mounting is supported; real hardware needs calibration")
-    # Whitelist metadata; ground-truth validation fields are never accessed here.
+def process_session(raw, calibration_records=None):
+    """Preserve the old bilateral schema; delegate measurements to canonical code."""
+    if calibration_records is None:
+        if raw.get('synthetic') is not True or raw.get('processing',{}).get('sensor_to_segment_alignment') != 'ideal':
+            raise ValueError('Explicit measured calibration required; identity is only for ideal synthetic fixtures')
+        calibrations = {side: {segment: {'R_sensor_to_segment': [[1,0,0],[0,1,0],[0,0,1]]}
+                              for segment in ('thigh','shank')} for side in ('left','right')}
+    else:
+        calibrations = {side: calibrate_pair(calibration_records[side]) for side in ('left','right')}
+    sides = {}
+    for side in ('left','right'):
+        quality = validate_signals(raw, side, 'imu_pair_only')
+        if quality['status'] != 'ready':
+            raise ValueError('Invalid '+side+' IMU input: '+', '.join(quality['reasons']))
+        sides[side] = reconstruct(raw, calibrations[side], side, BETA)
     processed = {key: copy.deepcopy(raw[key]) for key in (
-        "schema_version", "session_id", "activity", "synthetic", "participant",
-        "sampling", "sources", "insole_geometry", "annotations",
-    )}
-    if "baseline_demo" in raw:
-        processed["baseline_demo"] = copy.deepcopy(raw["baseline_demo"])
+        'schema_version','session_id','activity','synthetic','participant',
+        'sampling','sources','insole_geometry','annotations')}
+    for key in ('scenario','phases','baseline_demo'):
+        if key in raw:
+            processed[key] = copy.deepcopy(raw[key])
     processed["processing"] = {
         "stage": "post_sensor_processing", "orientation_filter": "Madgwick 6-DOF",
         "sensor_to_segment_calibration": "synthetic ideal alignment",
         "calibration_transform_wxyz": [1.0, 0.0, 0.0, 0.0],
         "hardware_calibration_requirement": "real hardware requires sensor-to-segment calibration",
-        "knee_angle_source": "relative thigh/shank orientation; signed Y pitch",
+        "knee_angle_source": "relative thigh/shank Madgwick orientation; signed Y pitch",
+        "knee_angular_velocity_source": "relative thigh/shank gyroscope Y-axis; ideal aligned sagittal model",
+        "knee_angular_acceleration_source": "finite difference of gyro-derived knee angular velocity",
+        "velocity_frame_requirement": "real 3D hardware requires calibrated common/anatomical frame transformation",
         "relative_orientation": "conjugate(thigh sensor-to-world) * shank sensor-to-world",
-        "knee_derivatives": "finite differences; central interiors, one-sided boundaries; applied twice",
+        "knee_derivatives": "velocity from calibrated gyro Y difference; acceleration from central interiors, one-sided boundaries",
         "derivative_filter": "none",
-        "timestamp_processing": "strict monotonic timestamps/sequences; interval tolerance 1%; no interpolation",
+        "timestamp_processing": "canonical strict timestamps/sequences; interval tolerance 1e-8 s; no interpolation",
         "filter_beta": BETA,
         "orientation_initialization": "200 zero-gyro gradient iterations using first accelerometer sample; assumes stationary initial pose and common zero yaw",
         "initialization_iterations": INITIAL_TILT_ITERATIONS,
         "insole_processing": "device/API measurements passed through unchanged",
     }
-    processed["synchronization"] = timing
-    filters = {(side, segment): MadgwickIMU(beta=BETA)
-               for side in ("left", "right") for segment in ("thigh", "shank")}
-    nominal_dt = timing["expected_interval_s"]
-    # Acquire tilt using only the initial measured acceleration. These iterations
-    # initialize the state; they are not new samples or elapsed session time.
-    for (side, segment), orientation in filters.items():
-        _, accel = calibrate_imu(raw["samples"][0][side]["imu"][segment])
-        if math.hypot(*accel) < 1e-12:
-            raise ValueError("Initial tilt requires nonzero accelerometer magnitude")
-        for _ in range(INITIAL_TILT_ITERATIONS):
-            orientation.update(0.0, 0.0, 0.0, *accel, nominal_dt)
-        check_quaternion(orientation.quaternion)
-    samples = []
-    for i, row in enumerate(raw["samples"]):
-        sample = {"sequence": row["sequence"], "timestamp_s": row["timestamp_s"]}
-        dt = row["timestamp_s"] - raw["samples"][i - 1]["timestamp_s"] if i else None
-        for side in ("left", "right"):
-            orientations = {}
-            for segment in ("thigh", "shank"):
-                packet = row[side]["imu"][segment]
-                packet_time = packet.get("timestamp_s", row["timestamp_s"])
-                if (not isinstance(packet_time, (int, float)) or isinstance(packet_time, bool)
-                        or not math.isfinite(packet_time)
-                        or not math.isclose(packet_time, row["timestamp_s"], rel_tol=0, abs_tol=1e-8)):
-                    raise ValueError("Unaligned IMU timestamp; clock correction is not supported")
-                gyro, accel = calibrate_imu(packet)
-                orientation = filters[side, segment]
-                if i:
-                    orientation.update(*gyro, *accel, dt)
-                check_quaternion(orientation.quaternion)
-                orientations[f"{segment}_wxyz"] = orientation.quaternion
-            relative = quaternion_relative(orientations["thigh_wxyz"], orientations["shank_wxyz"])
-            check_quaternion(relative)
-            angle = relative_flexion_y_rad(relative)
-            if not math.isfinite(angle):
-                raise ValueError("Nonfinite reconstructed knee flexion")
-            orientations["relative_wxyz"] = relative
-            sample[side] = {
-                "orientation": orientations,
-                "knee": {"flexion_rad": angle, "quality": {"valid": True, "reasons": []}},
-                "insole": copy.deepcopy(row[side]["insole"]),
+    if calibration_records is not None:
+        processed['processing']['sensor_to_segment_calibration'] = 'independent measured static/functional PCA'
+        processed['processing'].pop('calibration_transform_wxyz')
+        processed['processing']['calibrations'] = calibrations
+        processed['processing']['knee_angle_source'] = 'relative calibrated thigh/shank orientation; signed Y pitch'
+        processed['processing']['knee_angular_velocity_source'] = 'aligned shank gyro Y minus thigh gyro Y; sagittal model'
+        processed['processing']['relative_orientation'] = 'conjugate(thigh segment-to-world) * shank segment-to-world'
+    times = [row['timestamp_s'] for row in raw['samples']]
+    intervals = [b-a for a,b in zip(times,times[1:])]
+    processed['synchronization'] = {
+        'validation':'PASS','expected_interval_s':1/raw['sampling']['rate_hz'],
+        'observed_min_interval_s':min(intervals),'observed_max_interval_s':max(intervals),
+        'resampling':'none','sequence_gaps':0,'clock':raw['sampling']['clock'],
+        'synchronization_uncertainty_s':raw['sampling'].get('synchronization_uncertainty_s'),
+        'synchronization_basis':'input clock metadata; sample timing checked, cross-device offset not independently measured',
+    }
+    processed['samples'] = []
+    for i,row in enumerate(raw['samples']):
+        output = {key:row[key] for key in ('sequence','timestamp_s')}
+        for side in ('left','right'):
+            canonical = sides[side]['samples'][i][side]
+            output[side] = {
+                'orientation':{name+'_wxyz':tuple(q) for name,q in canonical['orientation'].items()},
+                'knee':copy.deepcopy(canonical['knee']),
+                'insole':copy.deepcopy(row[side]['insole']),
             }
-        samples.append(sample)
-    times = [row["timestamp_s"] for row in samples]
-    for side in ("left", "right"):
-        angles = [row[side]["knee"]["flexion_rad"] for row in samples]
-        velocity = finite_difference(angles, times)
-        acceleration = finite_difference(velocity, times)
-        for row, speed, change in zip(samples, velocity, acceleration):
-            row[side]["knee"].update(angular_velocity_rad_s=speed, angular_acceleration_rad_s2=change)
-    processed["samples"] = samples
+        processed['samples'].append(output)
     return processed
-
-
-def validate_processed(raw, processed):
-    """Validation-only ground-truth comparison after reconstruction is complete."""
-    assert len(processed["samples"]) == len(raw["samples"])
-    print("Synthetic ideal fixture — not hardware validation.")
-    print("\nKintra raw sensor pipeline validation")
-    print("-------------------------------------")
-    print(f"Samples: {len(processed['samples'])}")
-    print(f"Sampling rate: {processed['sampling']['rate_hz']} Hz")
-    for side in ("left", "right"):
-        for row in processed["samples"]:
-            assert all(math.isfinite(value) for key, value in row[side]["knee"].items() if key != "quality")
-            for q in row[side]["orientation"].values():
-                assert all(math.isfinite(value) for value in q)
-                assert math.isclose(math.hypot(*q), 1.0, abs_tol=1e-10)
-        assert all(a[side]["insole"] == b[side]["insole"] for a, b in zip(raw["samples"], processed["samples"]))
-        if all("ground_truth" in row for row in raw["samples"]):
-            truth = [math.degrees(row["ground_truth"][f"{side}_knee_flexion_rad"]) for row in raw["samples"]]
-            reconstructed = [math.degrees(row[side]["knee"]["flexion_rad"]) for row in processed["samples"]]
-            errors = [estimate - true for estimate, true in zip(reconstructed, truth)]
-            rmse = math.sqrt(sum(error**2 for error in errors) / len(errors))
-            assert rmse < 1.0, f"{side} ideal-test RMSE too large: {rmse}"
-            print(f"\n{side.capitalize()} knee:")
-            print(f"  True peak flexion: {max(truth):.2f} deg")
-            print(f"  Reconstructed peak flexion: {max(reconstructed):.2f} deg")
-            print(f"  RMSE: {rmse:.3f} deg")
-            print(f"  Maximum absolute error: {max(abs(error) for error in errors):.3f} deg")
-    print("\nTimestamp validation: PASS")
-    print("Quaternion validation: PASS")
-    print("Processed schema: PASS")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("session_path", type=Path)
+    parser.add_argument("--output", type=Path, help="Optional processed JSON destination")
     args = parser.parse_args()
     raw = json.loads(args.session_path.read_text())
     processed = process_session(raw)
     validate_processed(raw, processed)
     stem = args.session_path.stem
     stem = stem[:-4] if stem.endswith("_raw") else stem
-    output = ROOT / "data" / "processed" / f"{stem}_processed.json"
+    output = args.output or ROOT / "data" / "processed" / f"{stem}_processed.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(processed, indent=2, allow_nan=False) + "\n")
     assert json.loads(output.read_text()) == json.loads(json.dumps(processed))

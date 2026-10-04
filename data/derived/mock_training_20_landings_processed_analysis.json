@@ -1,0 +1,1922 @@
+{
+  "analysis_version": "0.2.0",
+  "session_id": "mock_training_20_landings_raw_001",
+  "activity": "bilateral_landing_series",
+  "synthetic": true,
+  "source_file": "data/processed/mock_training_20_landings_processed.json",
+  "definitions": {
+    "window": "inclusive start and end; sampled extrema",
+    "force": "external plantar normal force; not validated ground-reaction or internal knee force",
+    "body_weight_n": 735.49875,
+    "contact_threshold_n": 20.0,
+    "contact_time": "sum of sample intervals above threshold; no crossing interpolation",
+    "impulse": "trapezoidal integration over the full annotated window, N*s",
+    "loading_rate": "average dF/dt from first above-threshold sample to peak, N/s",
+    "pressure_means": "arithmetic means over valid above-threshold contact samples",
+    "asymmetry": "abs(left-right) / ((left+right)/2) * 100; null if denominator is zero",
+    "signed_asymmetry": "100 * (right-left) / ((left+right)/2); positive means right greater",
+    "missing_data": "no interpolation; incomplete signals yield null metrics with reasons"
+  },
+  "events": [
+    {
+      "event_id": "landing_1",
+      "start_s": 1.0,
+      "end_s": 1.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.191240496089863,
+          "maximum_deg": 46.075483071546884,
+          "rom_deg": 32.88424257545702,
+          "peak_abs_velocity_deg_s": 128.0453614948893,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.55,
+          "impulse_n_s": 375.10436249999987,
+          "average_loading_rate_n_s": 4517.591424360274,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000002,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.885107736636762,
+          "maximum_deg": 44.069873032757926,
+          "rom_deg": 31.184765296121164,
+          "peak_abs_velocity_deg_s": 121.30613194252668,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439221,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.55,
+          "impulse_n_s": 375.10436249999987,
+          "average_loading_rate_n_s": 4517.591424360274,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.305146234642315,
+          "peak_flexion_difference_deg": 2.0056100387889586,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405435,
+          "peak_angular_acceleration_asymmetry_percent": 5.4054054054054115
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.305146234642315,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_2",
+      "start_s": 3.0,
+      "end_s": 3.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.179906811623251,
+          "maximum_deg": 46.06598143377581,
+          "rom_deg": 32.88607462215256,
+          "peak_abs_velocity_deg_s": 128.0453614948893,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5500000000000003,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360275,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.848503596756025,
+          "maximum_deg": 44.04020310634602,
+          "rom_deg": 31.191699509589995,
+          "peak_abs_velocity_deg_s": 121.30613194252668,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5500000000000003,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360275,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999995,
+            "y_m": 0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.288495536936001,
+          "peak_flexion_difference_deg": 2.0257783274297907,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405435,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.288495536936001,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_3",
+      "start_s": 5.0,
+      "end_s": 5.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.169306029166373,
+          "maximum_deg": 46.05723692169872,
+          "rom_deg": 32.887930892532346,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999998,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.591424360279,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.81482696886599,
+          "maximum_deg": 44.01166946133287,
+          "rom_deg": 31.19684249246688,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999998,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.591424360279,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999995,
+            "y_m": 0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.277660544747464,
+          "peak_flexion_difference_deg": 2.045567460365845,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.277660544747465,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_4",
+      "start_s": 7.0,
+      "end_s": 7.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.161160503713901,
+          "maximum_deg": 46.05046340026454,
+          "rom_deg": 32.88930289655064,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999998,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.591424360279,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.783066497333579,
+          "maximum_deg": 44.07774836182192,
+          "rom_deg": 31.29468186448834,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999998,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.591424360279,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999995,
+            "y_m": 0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 4.96890630271453,
+          "peak_flexion_difference_deg": 1.9727150384426224,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -4.96890630271453,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_5",
+      "start_s": 9.0,
+      "end_s": 9.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.152981109523644,
+          "maximum_deg": 46.043281766375976,
+          "rom_deg": 32.89030065685233,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.5914243602565,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.7478085296932,
+          "maximum_deg": 44.145452834308564,
+          "rom_deg": 31.397644304615362,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 375.1043624999999,
+          "average_loading_rate_n_s": 4517.5914243602565,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 4.643658630343915,
+          "peak_flexion_difference_deg": 1.8978289320674122,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -4.643658630343915,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_6",
+      "start_s": 11.0,
+      "end_s": 11.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.145484420982086,
+          "maximum_deg": 46.036637653663774,
+          "rom_deg": 32.89115323268169,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1275.3548325,
+          "peak_force_bw": 1.734,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 382.60644974999997,
+          "average_loading_rate_n_s": 4607.943252847462,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.938227619239742,
+          "maximum_deg": 44.11485167445156,
+          "rom_deg": 31.176624055211818,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1275.3548325,
+          "peak_force_bw": 1.734,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 382.60644974999997,
+          "average_loading_rate_n_s": 4607.943252847462,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": 0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.352235554436363,
+          "peak_flexion_difference_deg": 1.921785979212217,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.352235554436363,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_7",
+      "start_s": 13.0,
+      "end_s": 13.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.139286712386546,
+          "maximum_deg": 46.03221803870593,
+          "rom_deg": 32.892931326319385,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1300.36179,
+          "peak_force_bw": 1.768,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 390.10853699999996,
+          "average_loading_rate_n_s": 4698.295081334667,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": -0.002499999999999999
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.904654626814784,
+          "maximum_deg": 44.08665725927213,
+          "rom_deg": 31.182002632457348,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1300.36179,
+          "peak_force_bw": 1.768,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 390.10853699999996,
+          "average_loading_rate_n_s": 4698.295081334667,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.0025000000000000005
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.340399398500451,
+          "peak_flexion_difference_deg": 1.945560779433798,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.340399398500451,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_8",
+      "start_s": 15.0,
+      "end_s": 15.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.132137996014894,
+          "maximum_deg": 46.02654805660538,
+          "rom_deg": 32.89441006059049,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019179,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1325.3687475,
+          "peak_force_bw": 1.802,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 397.61062425,
+          "average_loading_rate_n_s": 4788.646909821872,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": -0.0024999999999999988
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.86872526047338,
+          "maximum_deg": 44.058617448348855,
+          "rom_deg": 31.189892187875476,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.397755843922,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1325.3687475,
+          "peak_force_bw": 1.802,
+          "contact_time_s": 0.5500000000000007,
+          "impulse_n_s": 397.61062425,
+          "average_loading_rate_n_s": 4788.646909821872,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": 0.002499999999999999
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.319611239914264,
+          "peak_flexion_difference_deg": 1.9679306082565233,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405431
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.3196112399142645,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_9",
+      "start_s": 17.0,
+      "end_s": 17.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.124035690252493,
+          "maximum_deg": 46.01921246960252,
+          "rom_deg": 32.89517677935003,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.030964501917,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1350.375705,
+          "peak_force_bw": 1.836,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 405.1127115000001,
+          "average_loading_rate_n_s": 4878.998738309095,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": -0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.832314942574108,
+          "maximum_deg": 44.02670581829291,
+          "rom_deg": 31.194390875718803,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439215,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1350.375705,
+          "peak_force_bw": 1.836,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 405.1127115000001,
+          "average_loading_rate_n_s": 4878.998738309095,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.0025000000000000005
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.307528091888176,
+          "peak_flexion_difference_deg": 1.9925066513096112,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405395
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.307528091888176,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_10",
+      "start_s": 19.0,
+      "end_s": 19.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.113188506273874,
+          "maximum_deg": 46.01146964905981,
+          "rom_deg": 32.89828114278594,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.030964501917,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1375.3826625,
+          "peak_force_bw": 1.8699999999999999,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 412.61479874999986,
+          "average_loading_rate_n_s": 4969.3505667963,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": -0.0025000000000000005
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.79971822073563,
+          "maximum_deg": 44.09161262116275,
+          "rom_deg": 31.291894400427125,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439215,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1375.3826625,
+          "peak_force_bw": 1.8699999999999999,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 412.61479874999986,
+          "average_loading_rate_n_s": 4969.3505667963,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": 0.002499999999999999
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.005085992567163,
+          "peak_flexion_difference_deg": 1.9198570278970593,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405395
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.005085992567164,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_11",
+      "start_s": 21.0,
+      "end_s": 21.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.102672167565418,
+          "maximum_deg": 46.00211575750809,
+          "rom_deg": 32.89944358994268,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.030964501917,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.761813938549505,
+          "maximum_deg": 44.06263256608939,
+          "rom_deg": 31.300818627539886,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439215,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 4.980119729066979,
+          "peak_flexion_difference_deg": 1.9394831914187023,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405395
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -4.980119729066979,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_12",
+      "start_s": 23.0,
+      "end_s": 23.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 12.800774149296247,
+          "maximum_deg": 44.179455944265946,
+          "rom_deg": 31.3786817949697,
+          "peak_abs_velocity_deg_s": 121.64309342014482,
+          "peak_abs_acceleration_deg_s2": 1112.4794162768212,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.674106255451743,
+          "maximum_deg": 42.31951108263634,
+          "rom_deg": 29.645404827184596,
+          "peak_abs_velocity_deg_s": 115.24082534540034,
+          "peak_abs_acceleration_deg_s2": 1053.9278680517255,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.680632234668641,
+          "peak_flexion_difference_deg": 1.8599448616296073,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405422,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405396
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.68063223466864,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_13",
+      "start_s": 25.0,
+      "end_s": 25.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 12.700228078348534,
+          "maximum_deg": 42.34059645655494,
+          "rom_deg": 29.640368378206407,
+          "peak_abs_velocity_deg_s": 115.24082534540037,
+          "peak_abs_acceleration_deg_s2": 1053.9278680517255,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.341205060909036,
+          "maximum_deg": 40.46442081584835,
+          "rom_deg": 28.123215754939313,
+          "peak_abs_velocity_deg_s": 109.17551874827403,
+          "peak_abs_acceleration_deg_s2": 998.4579802595293,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.252972598687921,
+          "peak_flexion_difference_deg": 1.8761756407065917,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405407,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405409
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.252972598687921,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_14",
+      "start_s": 27.0,
+      "end_s": 27.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 12.354035579164087,
+          "maximum_deg": 40.38859440601422,
+          "rom_deg": 28.034558826850134,
+          "peak_abs_velocity_deg_s": 108.8385572706559,
+          "peak_abs_acceleration_deg_s2": 995.3763198266295,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.217820807174988,
+          "maximum_deg": 38.69214906463616,
+          "rom_deg": 26.474328257461174,
+          "peak_abs_velocity_deg_s": 103.11021215114766,
+          "peak_abs_acceleration_deg_s2": 942.9880924673333,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.724683268530806,
+          "peak_flexion_difference_deg": 1.696445341378059,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405434,
+          "peak_angular_acceleration_asymmetry_percent": 5.40540540540539
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.724683268530807,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_15",
+      "start_s": 29.0,
+      "end_s": 29.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 11.98505902296101,
+          "maximum_deg": 38.417469768722945,
+          "rom_deg": 26.432410745761935,
+          "peak_abs_velocity_deg_s": 102.43628919591143,
+          "peak_abs_acceleration_deg_s2": 936.8247716015339,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 11.848065315640525,
+          "maximum_deg": 36.90372977088368,
+          "rom_deg": 25.055664455243154,
+          "peak_abs_velocity_deg_s": 97.04490555402137,
+          "peak_abs_acceleration_deg_s2": 887.5182046751372,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000013,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.347825822364034,
+          "peak_flexion_difference_deg": 1.5137399978392665,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405388,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405428
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.347825822364034,
+          "peak_force_asymmetry_percent": 0.0,
+          "impulse_asymmetry_percent": 0.0
+        }
+      }
+    },
+    {
+      "event_id": "landing_16",
+      "start_s": 31.0,
+      "end_s": 31.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.062477003674537,
+          "maximum_deg": 46.06108855570831,
+          "rom_deg": 32.99861155203377,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.030964501917,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360273,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.12000000000000009,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.840113210712168,
+          "maximum_deg": 44.03338748422271,
+          "rom_deg": 31.19327427351054,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439215,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1275.3548325,
+          "peak_force_bw": 1.734,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 382.60644975,
+          "average_loading_rate_n_s": 4607.943252847478,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1200000000000001,
+            "y_m": 0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.624814586160117,
+          "peak_flexion_difference_deg": 2.027701071485602,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405395
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 1.9801980198019802,
+          "impulse_asymmetry_percent": 1.980198019801992
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.624814586160117,
+          "peak_force_asymmetry_percent": 1.9801980198019804,
+          "impulse_asymmetry_percent": 1.9801980198019922
+        }
+      }
+    },
+    {
+      "event_id": "landing_17",
+      "start_s": 33.0,
+      "end_s": 33.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.054798208434269,
+          "maximum_deg": 46.146419918068936,
+          "rom_deg": 33.091621709634666,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019183,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360332,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1199999999999995,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.806888992208075,
+          "maximum_deg": 44.00458708081646,
+          "rom_deg": 31.197698088608384,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439226,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1312.86526875,
+          "peak_force_bw": 1.7850000000000001,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 393.8595806250002,
+          "average_loading_rate_n_s": 4743.470995578349,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999952,
+            "y_m": 0.0025000000000000014
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.891876370662864,
+          "peak_flexion_difference_deg": 2.1418328372524797,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405409
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 4.878048780487814,
+          "impulse_asymmetry_percent": 4.878048780487862
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.891876370662864,
+          "peak_force_asymmetry_percent": 4.878048780487813,
+          "impulse_asymmetry_percent": 4.8780487804878625
+        }
+      }
+    },
+    {
+      "event_id": "landing_18",
+      "start_s": 35.0,
+      "end_s": 35.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.047274334072354,
+          "maximum_deg": 46.141007457766825,
+          "rom_deg": 33.09373312369447,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019183,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360332,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1199999999999995,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.774487729698306,
+          "maximum_deg": 44.0698248328252,
+          "rom_deg": 31.29533710312689,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439226,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1350.375705,
+          "peak_force_bw": 1.836,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 405.11271149999993,
+          "average_loading_rate_n_s": 4878.998738309158,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999952,
+            "y_m": 0.002500000000000002
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.586028853134318,
+          "peak_flexion_difference_deg": 2.0711826249416276,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405409
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 7.6923076923076925,
+          "impulse_asymmetry_percent": 7.692307692307682
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.5860288531343185,
+          "peak_force_asymmetry_percent": 7.6923076923076925,
+          "impulse_asymmetry_percent": 7.692307692307681
+        }
+      }
+    },
+    {
+      "event_id": "landing_19",
+      "start_s": 37.0,
+      "end_s": 37.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.041762702321623,
+          "maximum_deg": 46.13551890569259,
+          "rom_deg": 33.09375620337097,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019183,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360332,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1199999999999995,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.738808795041477,
+          "maximum_deg": 44.13649032711786,
+          "rom_deg": 31.397681532076383,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439226,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1387.88614125,
+          "peak_force_bw": 1.887,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 416.3658423750001,
+          "average_loading_rate_n_s": 5014.526481039969,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999951,
+            "y_m": 0.002500000000000001
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.259844502931126,
+          "peak_flexion_difference_deg": 1.9990285785747304,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405409
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 10.426540284360197,
+          "impulse_asymmetry_percent": 10.426540284360224
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.259844502931126,
+          "peak_force_asymmetry_percent": 10.426540284360197,
+          "impulse_asymmetry_percent": 10.426540284360222
+        }
+      }
+    },
+    {
+      "event_id": "landing_20",
+      "start_s": 39.0,
+      "end_s": 39.6,
+      "sample_count": 61,
+      "left": {
+        "kinematics": {
+          "minimum_deg": 13.033256475839407,
+          "maximum_deg": 46.130159524445446,
+          "rom_deg": 33.09690304860604,
+          "peak_abs_velocity_deg_s": 128.04536149488928,
+          "peak_abs_acceleration_deg_s2": 1171.0309645019183,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1250.347875,
+          "peak_force_bw": 1.7,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 375.1043625,
+          "average_loading_rate_n_s": 4517.591424360332,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.1199999999999995,
+            "y_m": -0.0025
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "right": {
+        "kinematics": {
+          "minimum_deg": 12.927846490449168,
+          "maximum_deg": 44.10677693271457,
+          "rom_deg": 31.178930442265397,
+          "peak_abs_velocity_deg_s": 121.3061319425267,
+          "peak_abs_acceleration_deg_s2": 1109.3977558439226,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "loading": {
+          "peak_plantar_normal_force_n": 1425.3965775000001,
+          "peak_force_bw": 1.9380000000000002,
+          "contact_time_s": 0.5499999999999972,
+          "impulse_n_s": 427.6189732500001,
+          "average_loading_rate_n_s": 5150.05422377078,
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        },
+        "pressure": {
+          "mean_medial_fraction": 0.55,
+          "mean_lateral_fraction": 0.44999999999999996,
+          "cop_at_peak_force_m": {
+            "x_m": 0.11999999999999952,
+            "y_m": 0.002500000000000002
+          },
+          "quality": {
+            "valid": true,
+            "reasons": []
+          }
+        }
+      },
+      "bilateral": {
+        "kinematics": {
+          "rom_asymmetry_percent": 5.967943166736327,
+          "peak_flexion_difference_deg": 2.023382591730879,
+          "peak_angular_velocity_asymmetry_percent": 5.405405405405389,
+          "peak_angular_acceleration_asymmetry_percent": 5.405405405405409
+        },
+        "loading": {
+          "peak_force_asymmetry_percent": 13.084112149532725,
+          "impulse_asymmetry_percent": 13.084112149532745
+        },
+        "signed_asymmetry_percent": {
+          "rom_asymmetry_percent": -5.967943166736327,
+          "peak_force_asymmetry_percent": 13.084112149532727,
+          "impulse_asymmetry_percent": 13.084112149532745
+        }
+      }
+    }
+  ]
+}

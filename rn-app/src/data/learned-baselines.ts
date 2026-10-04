@@ -5,19 +5,36 @@ export type MetricName =
   | 'peak_plantar_normal_force_bw'
   | 'landing_window_impulse_bw_s';
 export type Side = 'left' | 'right';
+export type ReferenceStatus = 'insufficient_reference' | 'provisional_reference' | 'longitudinal_reference';
+export type MeasurementReliability = {
+  status: string; empirically_established: boolean;
+  typical_error: number | null; cv_percent: number | null; sem: number | null; mdc: number | null;
+  source: string | null;
+};
+export type Insight = {
+  title: string; summary: string; activity: string; side: string; pattern: string;
+  reference_status: string; medical_inference: boolean;
+  evidence: { metric: string; side: string; unit: string; current: number; reference: number;
+    signed_difference: number; percent_difference: number | null; direction: string }[];
+};
 type EventRejection = { event_id: string; reasons: string[] };
 export type BaselineMetric = {
   side: string; metric: string; unit: string; status: string;
   median: number | null; mad: number | null;
+  computation_status: string; reference_status: string; dispersion_scope: string;
+  measurement_reliability: MeasurementReliability; contributing_session_ids: string[]; reasons: string[];
   eligible_session_count: number; contributing_event_count: number;
-  context: { activity: string; configuration_id: string; processing_version: string };
-  session_summaries: { session_id: string; median: number | null; valid_event_count: number; status: string }[];
+  context: { participant_id: string; joint: string; activity: string; configuration_id: string;
+    configuration_signature: string; processing_version: string; processing_signature: string };
+  session_summaries: { session_id: string; median: number | null; valid_event_count: number; status: string; event_mad: number | null; reasons: string[];
+    rejected_events: EventRejection[] }[];
 };
 export type Comparison = {
   side: string; metric: string; evaluation_median: number | null;
   signed_difference: number | null; percent_difference: number | null;
   robust_standardized_difference: number | null; status: string; reasons: string[];
-  standardized_difference_reasons: string[];
+  standardized_difference_reasons: string[]; reference_status: string;
+  direction: string | null; comparison_availability: string;
 };
 type SessionMetric = {
   side: string; metric: string; valid_event_count: number; total_event_count: number;
@@ -27,7 +44,7 @@ type Snapshot = {
   reference_session_count: number; baseline_version: string;
   rules: { min_valid_events: number; min_reference_sessions: number };
   metrics: BaselineMetric[];
-  evaluations: { scenario: string; session_id: string; comparisons: Comparison[]; session_metrics: SessionMetric[] }[];
+  evaluations: { scenario: string; session_id: string; comparisons: Comparison[]; session_metrics: SessionMetric[]; insights: Insight[] }[];
 };
 type BaselineData = {
   synthetic: boolean; seed: number;
@@ -51,5 +68,5 @@ export function formatMetric(value: number | null, metric: string) {
 export function landingReferenceReady(side: Side) {
   const snapshot = learnedBaselines.participants[0]?.snapshots.find((s) => s.reference_session_count === 5);
   const metrics = snapshot?.metrics.filter((m) => m.side === side) ?? [];
-  return metrics.length === 3 && metrics.every((m) => m.status === 'ready');
+  return metrics.length === 3 && metrics.every((m) => m.computation_status === 'available' && m.reference_status === 'provisional_reference');
 }

@@ -136,8 +136,9 @@ Run `python -B scripts/run_baseline_demo.py` from the repository root to refresh
 results, and `landing-baseline.tsx` displays them on Trends and monitored knee
 detail when Landings is selected. Those compact views use Athlete A, balanced
 evaluation and five reference sessions. The Demo Lab controls switch among three
-synthetic participant histories, ten held-out evaluation scenarios, both sides,
-and 3/5/10/20 reference sessions; selections affect the Lab only. History & quality
+synthetic participant histories, thirteen held-out evaluation scenarios, both sides,
+and 3/5/10/20 reference sessions; selections affect the Lab only. The Lab also
+includes the activity-confirmation demonstration and Python-generated insights. History & quality
 shows session medians, MAD, exclusions, and descriptive comparisons. Python is
 the only learner; the app consumes frozen snapshots offline. Running/walking
 charts have no learned reference. See `../docs/baseline-demo.md` for assumptions.

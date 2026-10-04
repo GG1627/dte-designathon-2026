@@ -102,7 +102,11 @@ extensions, statistical/quality rules, limitations, and focused tests.
 `raw/mock_balanced_raw.json` contains ideal synthetic thigh/shank accelerometer
 and gyro packets plus already-calibrated insole data. Ground truth is explicitly
 validation-only. `processed/mock_balanced_processed.json` contains estimated
-orientations, knee angles and finite-difference derivatives. `derived/` contains
+orientations, Madgwick knee angles, calibrated relative gyro-Y velocities, and
+finite-difference accelerations. The default raw generator retains the controlled
+20-landing fixture; `--scenario balanced` generates the three-event regression
+fixture. Real 3D sensors require a common anatomical-frame transformation before
+relative velocity extraction. `derived/` contains
 diagnostic session reports, not inputs to the baseline fitter.
 
 Run `python -B scripts/run_baseline_demo.py --sensor-pipeline` to route reference

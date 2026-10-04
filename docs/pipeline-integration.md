@@ -5,10 +5,11 @@ The two contributions cover different stages of one pipeline:
 ```text
 synthetic motion and pressure fixtures
   -> generate_raw_sensor_fixture.to_raw_session: ideal IMU emulation
-  -> process_sensor_session.process_session: Madgwick orientations / knee angles
+  -> process_sensor_session.process_session: Madgwick angles / relative gyro velocity / acceleration
   -> baseline_simulation.extract_session: quality-aware annotated landing metrics
   -> summarize_session / fit_baseline: session medians, personal median and MAD
-  -> compare_evaluations: frozen reference versus separate evaluation
+  -> compare_evaluations: frozen provisional reference versus separate evaluation
+  -> reference_insights: descriptive explanation with supporting metrics
 ```
 
 `scripts/analyze_session.py` is a parallel diagnostic report over extracted
@@ -44,6 +45,45 @@ analytic-angle experiments and refreshes the app snapshot. The app currently
 shows those frozen synthetic results; it does not ingest raw IMUs or fit history
 on the device. The new command verifies the upstream connection independently.
 
+## Corrected sensor kinematics and controlled fixture
+
+The processor keeps Antonio's angle path: Madgwick thigh/shank orientations,
+then signed Y pitch of the relative quaternion. Knee angular velocity is the
+calibrated shank gyro Y minus thigh gyro Y; angular acceleration is one central
+finite difference of that velocity, with one-sided boundary differences.
+The analyzer and baseline layer consume these measurements; neither derives
+velocity by differentiating the Madgwick angle. No smoothing is added.
+
+Y subtraction is valid only for the ideal aligned sagittal model. Real 3-D
+hardware requires calibrated segment angular velocities transformed into a
+common/anatomical frame before extracting the relative flexion component.
+
+Generate the balanced regression fixture explicitly, or retain the default
+20-landing fixture with its four programmed phases:
+
+```sh
+python3 -B scripts/generate_raw_sensor_fixture.py --scenario balanced
+python3 -B scripts/process_sensor_session.py data/raw/mock_balanced_raw.json
+python3 -B scripts/analyze_session.py data/processed/mock_balanced_processed.json
+python3 -B scripts/generate_raw_sensor_fixture.py
+python3 -B scripts/process_sensor_session.py data/raw/mock_training_20_landings_raw.json
+python3 -B scripts/analyze_session.py data/processed/mock_training_20_landings_processed.json
+python3 -B scripts/generate_raw_sensor_fixture.py --validate-processed data/processed/mock_training_20_landings_processed.json
+```
+
+The raw adapter preserves reference-history context and validation-only analytic
+truth, while the processor never reads truth for reconstruction. All scenario
+logic and phase assertions stay in the generator. The 41-second fixture has
+4,100 samples and 20 bilateral events. It exercises controlled reference repeated
+motion, symmetric loading increases, reduced flexion, and right-load bias;
+it does not establish a personal baseline or a fatigue/injury score.
+
+The balanced regression expects left/right peak velocities of 128.045361 and
+121.306132 deg/s, and peak accelerations of 1171.030965 and 1109.397756 deg/s².
+Repeated velocity/acceleration ranges remain at floating-point precision.
+`tests/test_kinematic_regression.py` protects these values, ground-truth
+independence, and the training phases in addition to Gael's integration tests.
+
 ## Integration corrections
 
 - The baseline configuration fingerprint accepts either the original `filter`
@@ -78,7 +118,7 @@ bias, noise, skin motion or placement errors. Insoles are already calibrated
 measurements, not raw ADC values. Madgwick currently assumes ideal alignment,
 stationary initialization, common zero yaw, and sagittal signed Y pitch limited
 to +/-90 degrees. It implements no general anatomical neutral-pose calibration.
-Derivative estimates are unfiltered and can have startup/boundary artifacts.
+Gyro-derived velocity is unfiltered; its finite-difference acceleration can have boundary artifacts and will require a justified noise policy for real sensors.
 These are software demonstrations, not sensor or medical validation.
 
 The processor requires a complete session and aborts on an IMU/frame fault;
@@ -107,3 +147,81 @@ separation, ground-truth independence, IMU faults, shared metric agreement,
 signed asymmetry and dropout. Tiny differences when regenerating committed
 fixtures (observed about 8.4e-13 in knee derivatives) are floating-point effects,
 not evidence of incompatible schema.
+
+
+## Controlled reference and measurement reliability
+
+The 20-event experiment uses landings 1–5 as a **controlled within-session
+reference**, with status `controlled_test_reference`; landings 6–20 are held-out
+observations. Five trials from one noise-free synthetic session do not establish
+an athlete's longitudinal personal baseline. This is engineering validation of
+programmed changes, not hardware, clinical, or baseline-sufficiency validation.
+
+The `--validate-processed` command above writes
+`data/baseline_demo/controlled_reference/comparison.json` and prints
+signed force deviations for observations 6–20. It reuses Gael's quality-aware
+metric extraction and comparison arithmetic on Antonio's processed measurements.
+The three existing baseline metrics are knee ROM, peak plantar normal force/BW,
+and annotated-window impulse/BW. The reference records median and event MAD,
+valid/rejected trial IDs, context, and one contributing session. This event MAD
+only describes variation in the controlled set; it is not an estimate of the
+athlete's usual session-to-session variability. Zero/degenerate MAD leaves
+standardized differences unavailable instead of fabricating a replacement.
+The reference stays fixed regardless of subsequent observations.
+
+Production references need repeated measurements across sessions/days under
+reasonably consistent conditions, grouped by athlete, joint, side, activity,
+sensor configuration, and acquisition context. The existing multi-session
+learner uses session medians and the MAD of session medians. Optional
+`baseline_demo.acquisition_context` (e.g. surface, footwear, protocol) is now part
+of the configuration fingerprint. Missing context is an explicit legacy
+assumption, not evidence that real acquisitions are equivalent. Collect and
+populate relevant context before using real data. Running, walking, squatting,
+and landing references must remain separate; left/right metrics cannot substitute
+for each other unless the metric explicitly describes a bilateral comparison.
+
+Existing minimum-event/session counts remain configurable **software rules**.
+`ready` means computations are available; eligible multi-session references are
+labeled `provisional_reference`, and insufficient ones `insufficient_reference`.
+A future `longitudinal_reference` designation requires an evidence-based
+protocol and reliability assessment; neither a hardcoded count nor synthetic
+dates establishes it. There is no automatic adaptive updating. Future updating
+should use cautiously selected stable periods so sustained changes are not
+immediately absorbed into the reference.
+
+Reliability metadata reserves typical error, CV, SEM, MDC, and source fields,
+all currently `null` with status `not_empirically_established`. Noise-free input
+and numerical repeatability do not establish real measurement error. Median/MAD
+are descriptive variability, not empirically established SEM/MDC. Differences
+can be reported as “14% above the controlled reference”; they cannot establish
+clinical meaning, safety, fatigue, or injury risk. Even a nonzero standardized
+difference is descriptive, not a validated alert threshold.
+
+These choices follow the general monitoring and reliability principles in
+[Bourdon et al. (2017), Monitoring Athlete Training Loads: Consensus Statement](https://pubmed.ncbi.nlm.nih.gov/28463642/)
+and [Hopkins (2000), Measures of reliability in sports medicine and science](https://pubmed.ncbi.nlm.nih.gov/10907753/).
+The former discusses monitoring and interpretation; the latter
+distinguishes within-subject variation, systematic changes, and typical error,
+including CV. These sources do not validate Kintra's metrics, its five-trial
+experiment, or its operational sample counts.
+
+
+The [personal reference schema and judge story](baseline-demo.md#personal-reference-schema-and-athlete-explanation)
+now separates computation from maturity, exports null reliability evidence,
+and adds a deterministic insight layer over the existing comparisons. Both
+analytic and sensor-round-trip modes use this same layer. Reference-matched
+engineering examples appear in the app experiments; the connected sensor demo
+continues to use the original three evaluation fixtures. The sensor processor,
+Madgwick math, calibrated relative gyro velocity, and acceleration are unchanged.
+
+
+## Activity confirmation and reference integrity
+
+The [human-in-the-loop activity context](activity-context.md) extension keeps
+movement candidates separate from confirmed sport/activity. Only trusted user
+confirmation/correction or explicit manual selection can contribute history;
+unconfirmed current sessions retain metrics but cannot compare. The new judge
+flow demonstrates Basketball versus Volleyball using identical processed signals.
+Existing synthetic task sessions carry an explicit manual-selection assumption;
+all previous session-first statistics, provisional maturity, null reliability,
+quality rejection, and fixed-reference behavior remain in place.

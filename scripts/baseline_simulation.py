@@ -12,10 +12,12 @@ from datetime import date, timedelta
 from statistics import median
 
 import generate_mock_data as mock
+from activity_context import confirmed_activity, declared_context
+from athlete_confirmation import confirmed_movement
 
 GENERATOR_VERSION = "baseline-history/1.1.0"
 PROCESSING_VERSION = "annotated-landing-metrics/1.1.0"
-BASELINE_VERSION = "session-median-mad/1.0.0"
+BASELINE_VERSION = "session-median-mad/1.2.0"
 CONFIGURATION_ID = "mock_ideal_bilateral_knee_insole_v1"
 METRICS = {
     "knee_rom_rad": "rad",
@@ -102,6 +104,7 @@ def generate_reference_history(seed=20261003, session_count=5, participant=None)
         day = date(2026, 9, 1) + timedelta(days=index)
         data["baseline_demo"] = demo_metadata("reference", index + 1,
                                               f"{day.isoformat()}T12:00:00Z", session_seed)
+        data["baseline_demo"]["activity_context"] = declared_context(data["activity"])
         data["baseline_demo"]["waveforms"] = landings  # Ground truth, never used to extract metrics.
         data["baseline_demo"]["participant_parameters"] = participant
         mock.verify_measurements(data)
@@ -115,6 +118,8 @@ def evaluation_fixture(data, index):
         raise ValueError("Only the existing synthetic 0.1.0 fixtures are supported by this adapter")
     result = copy.deepcopy(data)
     result["baseline_demo"] = demo_metadata("evaluation", index, "2026-10-03T12:00:00Z")
+    result["baseline_demo"]["activity_context"] = copy.deepcopy(
+        data.get("baseline_demo", {}).get("activity_context", declared_context(data["activity"])))
     result["baseline_demo"]["configuration_assumption"] = (
         "Legacy fixture explicitly assigned the ideal mock configuration; fingerprint checked")
     return result
@@ -133,8 +138,10 @@ def context(data, rules):
                      "clock": data["sampling"]["clock"],
                      "processing": processing, "sources": data["sources"],
                      "insole_geometry": data["insole_geometry"]}
+    if "acquisition_context" in metadata:
+        configuration["acquisition_context"] = metadata["acquisition_context"]
     return {"participant_id": data["participant"]["id"], "joint": metadata["joint"],
-            "activity": data["activity"], "configuration_id": metadata["configuration_id"],
+            "activity": confirmed_activity(data), "configuration_id": metadata["configuration_id"],
             "configuration_signature": digest(configuration),
             "processing_version": PROCESSING_VERSION,
             "processing_signature": digest({"min_valid_events": rules.min_valid_events,
@@ -274,6 +281,9 @@ def summarize_session(extracted, rules=Rules()):
             summaries.append({"side": side, "metric": name, "unit": unit,
                               "status": "accepted" if eligible else "insufficient_valid_events",
                               "median": median(e["value"] for e in valid) if eligible else None,
+                              "event_mad": median(abs(e["value"] - median(v["value"] for v in valid))
+                                                  for e in valid) if eligible else None,
+                              "dispersion_scope": "within_session_events",
                               "valid_event_count": len(valid), "total_event_count": len(results),
                               "valid_event_ids": [e["event_id"] for e in valid],
                               "reasons": [] if eligible else ["insufficient_valid_events"],
@@ -283,7 +293,9 @@ def summarize_session(extracted, rules=Rules()):
 
 
 def group_key(ctx, side, metric):
-    return tuple(ctx[field] for field in CONTEXT_FIELDS) + (side, metric)
+    # Legacy explicit task demos retain their original key. Canonical records
+    # additionally require a confirmed movement; predictions never supply it.
+    return tuple(ctx[field] for field in CONTEXT_FIELDS) + (ctx.get('confirmed_movement'), ctx.get('side'), side, metric)
 
 
 def require_unique_sessions(sessions):
@@ -303,6 +315,13 @@ def fit_baseline(reference_sessions, rules=Rules()):
             raise ValueError("Inconsistent reference aggregation rules")
         for metric in session["session_metrics"]:
             key = group_key(session["context"], metric["side"], metric["metric"])
+            if confirmed_activity(session) is None or confirmed_activity(session) != session["context"]["activity"]:
+                metric = {**metric, "status": "unconfirmed_activity",
+                          "reasons": sorted(set(metric["reasons"]) | {"activity_confirmation_required"})}
+            if ("confirmed_movement" in session["context"] and
+                (confirmed_movement(session) is None or confirmed_movement(session) != session["context"]["confirmed_movement"])):
+                metric = {**metric, "status": "unconfirmed_movement",
+                          "reasons": sorted(set(metric["reasons"]) | {"movement_confirmation_required"})}
             groups.setdefault(key, []).append((session, metric))
     fitted = []
     for entries in groups.values():
@@ -314,11 +333,18 @@ def fit_baseline(reference_sessions, rules=Rules()):
         fitted.append({"context": first_session["context"], "side": first_metric["side"],
                        "metric": first_metric["metric"], "unit": first_metric["unit"],
                        "status": "ready" if ready else "insufficient_reference_history",
+                       "computation_status": "available" if ready else "unavailable",
+                       "measurement_reliability": measurement_error_metadata(),
+                       "dispersion_scope": "between_session_medians",
+                       "reference_status": "provisional_reference" if ready else "insufficient_reference",
+                       "activity_provenance": [copy.deepcopy(s["metadata"]["activity_context"]) for s, _ in eligible],
+                       "scope": "multi_session_reference",
                        "median": center, "mad": dispersion,
                        "eligible_session_count": len(eligible), "total_session_count": len(entries),
                        "contributing_event_count": sum(m["valid_event_count"] for _, m in eligible),
                        "contributing_session_ids": [s["session_id"] for s, _ in eligible],
                        "session_summaries": [{"session_id": s["session_id"], "median": m["median"],
+                                              "event_mad": m["event_mad"],
                                               "valid_event_count": m["valid_event_count"],
                                               "total_event_count": m["total_event_count"],
                                               "status": m["status"], "reasons": m["reasons"],
@@ -327,7 +353,10 @@ def fit_baseline(reference_sessions, rules=Rules()):
     return {"schema_version": "baseline-results/1.0.0", "synthetic": True,
             "version": BASELINE_VERSION, "aggregation": "median_of_reference_session_medians",
             "dispersion": "median_absolute_deviation_of_session_medians", "rules": asdict(rules),
-            "reference_session_ids": [s["session_id"] for s in reference_sessions], "metrics": fitted}
+            "sufficiency_policy": "configurable_software_demonstration_only",
+            "reference_session_ids": [s["session_id"] for s in reference_sessions], "metrics": fitted,
+            "measurement_error": measurement_error_metadata(),
+            "measurement_reliability": measurement_error_metadata(), "updating": "fixed"}
 
 
 def compare_evaluations(baseline, evaluation_sessions):
@@ -345,35 +374,135 @@ def compare_evaluations(baseline, evaluation_sessions):
         for metric in session["session_metrics"]:
             ref = reference.get(group_key(session["context"], metric["side"], metric["metric"]))
             reasons = set(metric["reasons"])
+            if confirmed_activity(session) is None:
+                reasons.add("activity_confirmation_required")
+            elif confirmed_activity(session) != session["context"]["activity"]:
+                reasons.add("incompatible_context")
+            if ("confirmed_movement" in session["context"] and
+                (confirmed_movement(session) is None or confirmed_movement(session) != session["context"]["confirmed_movement"])):
+                reasons.add("movement_confirmation_required")
             if ref is None:
                 reasons.add("incompatible_context" if baseline["metrics"] else "baseline_unavailable")
             elif ref["status"] != "ready":
                 reasons.add("insufficient_reference_history")
-            difference = percent = standardized = None
-            percent_reasons, standardized_reasons = [], []
-            if not reasons:
-                difference = metric["median"] - ref["median"]
-                if ref["median"] == 0:
-                    percent_reasons = ["zero_reference"]
-                else:
-                    percent = 100 * difference / ref["median"]
-                if ref["mad"] <= max(rules.mad_abs_tol, rules.mad_rel_tol * abs(ref["median"])):
-                    standardized_reasons = ["zero_or_degenerate_mad"]
-                else:
-                    standardized = 0.67448975 * difference / ref["mad"]
-            else:
-                percent_reasons = standardized_reasons = sorted(reasons)
+            elif (not ref.get("activity_provenance")
+                  or len(ref["activity_provenance"]) != ref["eligible_session_count"]
+                  or any(confirmed_activity({"metadata": {"activity_context": item}})
+                         != ref["context"]["activity"] for item in ref["activity_provenance"])):
+                reasons.add("reference_activity_confirmation_required")
+            if ref and "confirmed_movement" in ref["context"] and any(
+                confirmed_movement({"metadata": {"activity_context": item}}) != ref["context"]["confirmed_movement"]
+                for item in ref.get("activity_provenance", [])):
+                reasons.add("reference_movement_confirmation_required")
             comparisons.append({"side": metric["side"], "metric": metric["metric"], "unit": metric["unit"],
                                 "evaluation_median": metric["median"],
                                 "valid_event_count": metric["valid_event_count"],
                                 "reference_median": ref["median"] if ref else None,
                                 "reference_mad": ref["mad"] if ref else None,
-                                "signed_difference": difference, "percent_difference": percent,
-                                "robust_standardized_difference": standardized,
-                                "status": "unavailable" if reasons else (
-                                    "partial" if percent_reasons or standardized_reasons else "compared"),
-                                "reasons": sorted(reasons),
-                                "percent_difference_reasons": percent_reasons,
-                                "standardized_difference_reasons": standardized_reasons})
-        evaluations.append({**session, "baseline_version": baseline["version"], "comparisons": comparisons})
+                                "reference_status": ref["reference_status"] if ref else "insufficient_reference",
+                                "context": copy.deepcopy(session["context"]),
+                                "activity_confirmation": copy.deepcopy(session["metadata"].get("activity_context", {})),
+                                **comparison_values(metric["median"], ref, reasons, rules)})
+        from reference_insights import build_insights
+        evaluations.append({**session, "baseline_version": baseline["version"], "comparisons": comparisons,
+                            "insights": build_insights(comparisons)})
     return evaluations
+
+
+def measurement_error_metadata():
+    """Reserved reliability fields; no Kintra reliability study has established them."""
+    return {"status": "not_empirically_established", "empirically_established": False, "typical_error": None,
+            "cv_percent": None, "sem": None, "mdc": None, "source": None,
+            "clinical_meaning_established": False}
+
+
+def comparison_values(value, ref, reasons, rules):
+    """Shared signed deviations; degeneracy does not fabricate variability."""
+    difference = percent = standardized = None
+    percent_reasons, standardized_reasons = [], []
+    if not reasons:
+        difference = value - ref["median"]
+        if ref["median"] == 0:
+            percent_reasons = ["zero_reference"]
+        else:
+            percent = 100 * difference / ref["median"]
+        if ref["mad"] <= max(rules.mad_abs_tol, rules.mad_rel_tol * abs(ref["median"])):
+            standardized_reasons = ["zero_or_degenerate_mad"]
+        else:
+            standardized = 0.67448975 * difference / ref["mad"]
+    else:
+        percent_reasons = standardized_reasons = sorted(reasons)
+    direction = None
+    if difference is not None:
+        # Floating-point equivalence only; NOT a physiological or display deadband.
+        direction = ("near_reference" if math.isclose(value, ref["median"], rel_tol=1e-12, abs_tol=1e-12)
+                     else "increased" if difference > 0 else "decreased")
+    return {"signed_difference": difference, "percent_difference": percent,
+            "direction": direction, "direction_method": "numerical_tolerance_only",
+            "current_session_value": value, "personal_reference_value": ref["median"] if ref else None,
+            "comparison_availability": "unavailable" if reasons else "available",
+            "robust_standardized_difference": standardized,
+            "status": "unavailable" if reasons else (
+                "partial" if percent_reasons or standardized_reasons else "compared"),
+            "reasons": sorted(reasons), "percent_difference_reasons": percent_reasons,
+            "standardized_difference_reasons": standardized_reasons}
+
+
+def fit_controlled_reference(extracted, reference_event_ids, rules=Rules()):
+    """Freeze selected trials from ONE synthetic session; never a personal baseline.
+
+    Median/MAD describe these trials only. Existing minimum valid-event rules
+    determine computational availability, not scientific reference sufficiency.
+    """
+    ids = list(reference_event_ids)
+    available = {e["event_id"] for e in extracted["event_metrics"]}
+    if not ids or len(ids) != len(set(ids)) or not set(ids) <= available:
+        raise ValueError("Reference IDs must be unique existing events")
+    if extracted["synthetic"] is not True:
+        raise ValueError("Controlled test reference requires a synthetic session")
+    if extracted["processing"]["rules"] != asdict(rules):
+        raise ValueError("Reference rules must match extracted metrics")
+    metrics = []
+    for side in SIDES:
+        for name, unit in METRICS.items():
+            selected = [e for e in extracted["event_metrics"]
+                        if e["event_id"] in ids and e["side"] == side and e["metric"] == name]
+            valid = [e for e in selected if e["status"] == "accepted"]
+            ready = len(valid) >= rules.min_valid_events
+            center = median(e["value"] for e in valid) if ready else None
+            metrics.append({"context": copy.deepcopy(extracted["context"]),
+                            "side": side, "metric": name, "unit": unit,
+                            "status": "ready" if ready else "insufficient_reference",
+                            "median": center,
+                            "mad": median(abs(e["value"] - center) for e in valid) if ready else None,
+                            "valid_event_ids": [e["event_id"] for e in valid],
+                            "valid_event_count": len(valid),
+                            "rejected_events": [copy.deepcopy(e) for e in selected if e["status"] != "accepted"]})
+    return {"schema_version": "controlled-reference/1.0.0",
+            "reference_status": "controlled_test_reference", "synthetic": True,
+            "label": "controlled within-session reference", "session_id": extracted["session_id"],
+            "session_count": 1, "reference_event_ids": ids, "rules": asdict(rules),
+            "aggregation": "median_of_reference_events", "dispersion": "within_session_event_mad",
+            "updating": "fixed", "measurement_error": measurement_error_metadata(), "metrics": metrics}
+
+
+def compare_controlled_observations(reference, extracted):
+    """Compare held-out trials using the shared deviations, without updating reference."""
+    rules = Rules(**reference["rules"])
+    lookup = {group_key(m["context"], m["side"], m["metric"]): m for m in reference["metrics"]}
+    comparisons = []
+    for event in extracted["event_metrics"]:
+        if (extracted["session_id"] == reference["session_id"]
+                and event["event_id"] in reference["reference_event_ids"]):
+            continue
+        ref = lookup.get(group_key(extracted["context"], event["side"], event["metric"]))
+        reasons = set(event["reasons"])
+        if ref is None:
+            reasons.add("incompatible_context")
+        elif ref["status"] != "ready":
+            reasons.add("insufficient_reference")
+        comparisons.append({**event, "session_id": extracted["session_id"],
+                            "reference_median": ref["median"] if ref else None,
+                            "reference_mad": ref["mad"] if ref else None,
+                            **comparison_values(event["value"], ref, reasons, rules)})
+    return comparisons
